@@ -1,5 +1,10 @@
 # Zmiany
 
+## 1.1.2
+
+- Dopasowane kolorystycznie tła ikon aplikacji i spójne zasoby graficzne.
+- Nowa ikona aplikacji, warianty systemowe i odświeżona grafika na stronie projektu.
+
 ## 1.1.0
 - 9 nowych wyzwalaczy (razem 25): dzień miesiąca, jednorazowo, połączenie telefoniczne, internet, urządzenie Bluetooth, zmiana trybu dzwonka i Nie przeszkadzać, temperatura baterii, instalacje aplikacji.
 - 12 nowych warunków (razem 26): miesiąc, zakres dat, tryb samolotowy, blokada ekranu, muzyka, rozmowa, głośność, temperatura baterii, latarka, aplikacja zainstalowana, stan innej rutyny, czas od ostatniego uruchomienia; porównania zmiennych: nie zawiera, zaczyna się, kończy się, ≥, ≤, wyrażenie regularne.
