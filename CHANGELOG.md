@@ -1,5 +1,13 @@
 # Zmiany
 
+## 1.1.0
+- 9 nowych wyzwalaczy (razem 25): dzień miesiąca, jednorazowo, połączenie telefoniczne, internet, urządzenie Bluetooth, zmiana trybu dzwonka i Nie przeszkadzać, temperatura baterii, instalacje aplikacji.
+- 12 nowych warunków (razem 26): miesiąc, zakres dat, tryb samolotowy, blokada ekranu, muzyka, rozmowa, głośność, temperatura baterii, latarka, aplikacja zainstalowana, stan innej rutyny, czas od ostatniego uruchomienia; porównania zmiennych: nie zawiera, zaczyna się, kończy się, ≥, ≤, wyrażenie regularne.
+- 18 nowych akcji (razem 45): krok głośności i wyciszenie, wygaszanie i obracanie ekranu, czyszczenie powiadomień, telefon, e-mail, budzik, minutnik, nawigacja, ekrany ustawień, przetwarzanie tekstu, losowanie, data do zmiennej, odczyt JSON, wczytanie pliku, usuwanie zmiennej, „Pomiń akcje, jeśli…”, czekanie do godziny; działania reszta/min/max.
+- Nowe zmienne wbudowane: dzień, miesiąc, rok, znacznik czasu, ładowanie, sieć, dzwonek, głośność, temperatura baterii.
+- 27 nowych, rozbudowanych szablonów (razem 42), pogrupowanych tematycznie.
+- Dolny pasek na całą szerokość, bez obramowania, przyklejony do dołu ekranu.
+
 ## 1.0.0
 - Pierwsze wydanie OpenRoutine: rutyny „zdarzenie → warunek → akcja” w czarno-białym interfejsie w stylu OpenPDF.
 - 16 wyzwalaczy: godzina i dni tygodnia, interwał, start telefonu, ręcznie/skrót, bateria, ładowarka, ekran, słuchawki, Wi-Fi, Bluetooth, tryb samolotowy, oszczędzanie baterii, nowy plik w folderze, powiadomienie aplikacji, SMS, zdarzenie z innej aplikacji.

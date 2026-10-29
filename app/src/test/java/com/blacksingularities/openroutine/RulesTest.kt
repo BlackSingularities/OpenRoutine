@@ -102,9 +102,9 @@ class RulesTest {
     fun catalogIsConsistent() {
         val ids = Catalog.all.map { it.id }
         assertEquals(ids.size, ids.toSet().size)
-        assertTrue(Catalog.of(Kind.TRIGGER).size >= 15)
-        assertTrue(Catalog.of(Kind.CONDITION).size >= 14)
-        assertTrue(Catalog.of(Kind.ACTION).size >= 25)
+        assertTrue(Catalog.of(Kind.TRIGGER).size >= 25)
+        assertTrue(Catalog.of(Kind.CONDITION).size >= 26)
+        assertTrue(Catalog.of(Kind.ACTION).size >= 45)
         Catalog.all.forEach { spec ->
             // Każdy opis musi działać na wartościach domyślnych.
             assertTrue(spec.summary(spec.defaults()).isNotBlank())
@@ -137,5 +137,61 @@ class RulesTest {
         val copy = r.fresh()
         assertFalse(copy.id == r.id)
         assertEquals(r.actions.map { it.params }, copy.actions.map { it.params })
+    }
+
+    @Test
+    fun textOperations() {
+        assertEquals("482913", Fmt.text("regex", "Twój kod: 482913. Nie udostępniaj", "\\b(\\d{4,8})\\b", ""))
+        assertEquals("", Fmt.text("regex", "brak kodu", "(\\d{4})", ""))
+        assertEquals("48600100200", Fmt.text("digits", "+48 600-100-200", "", ""))
+        assertEquals("Ala", Fmt.text("substring", "Ala ma kota", "0", "3"))
+        assertEquals("ALA", Fmt.text("upper", "ala", "", ""))
+        assertEquals("pies ma kota", Fmt.text("replace", "Ala ma kota", "ala", "pies"))
+    }
+
+    @Test
+    fun newComparisonsAndCalc() {
+        assertTrue(Fmt.compare("10", "ge", "10"))
+        assertTrue(Fmt.compare("9", "le", "10"))
+        assertTrue(Fmt.compare("Faktura 2026", "starts", "faktura"))
+        assertTrue(Fmt.compare("raport.pdf", "regex", "\\.pdf$"))
+        assertTrue(Fmt.compare("abc", "not_contains", "x"))
+        assertEquals("1", Fmt.calc("7", "mod", "3"))
+        assertEquals("10", Fmt.calc("4", "min", "10"))
+        assertEquals("100", Fmt.calc("120", "max", "100"))
+    }
+
+    @Test
+    fun datesMonthsAndMonthly() {
+        assertEquals(setOf(12, 1, 2), Fmt.months("12, 1,2, 13"))
+        assertEquals(true, Fmt.inDateRange("12-20", "01-06", java.time.LocalDate.of(2027, 1, 3)))
+        assertEquals(false, Fmt.inDateRange("07-01", "08-31", java.time.LocalDate.of(2027, 9, 1)))
+        assertEquals(true, Fmt.inDateRange("2026-07-01", "2026-07-14", java.time.LocalDate.of(2026, 7, 14)))
+        assertEquals(null, Fmt.inDateRange("jutro", "08-31", java.time.LocalDate.of(2026, 7, 1)))
+        // Dzień 31 w lutym = ostatni dzień miesiąca.
+        assertEquals(LocalDateTime.of(2026, 2, 28, 9, 0), Fmt.nextMonthly(31, 9 * 60, LocalDateTime.of(2026, 2, 10, 8, 0)))
+        assertEquals(LocalDateTime.of(2026, 11, 10, 9, 0), Fmt.nextMonthly(10, 9 * 60, LocalDateTime.of(2026, 10, 10, 9, 0)))
+        assertEquals(LocalDateTime.of(2026, 12, 24, 18, 0), Fmt.parseDateTime("2026-12-24", "18:00"))
+    }
+
+    @Test
+    fun newTriggerFilters() {
+        val temp = Block("t.battery_temp", mapOf("dir" to "above", "temp" to "42"))
+        assertTrue(Triggers.matches(temp, mapOf("prev" to "41.8", "battery_temp" to "42.1")))
+        assertFalse(Triggers.matches(temp, mapOf("prev" to "42.5", "battery_temp" to "43.0")))
+        val bt = Block("t.bt_device", mapOf("state" to "connected", "name" to "car"))
+        assertTrue(Triggers.matches(bt, mapOf("state" to "connected", "bt_name" to "My CAR Audio")))
+        assertFalse(Triggers.matches(bt, mapOf("state" to "connected", "bt_name" to "Buds")))
+        val call = Block("t.call", mapOf("state" to "ringing", "number" to "600 100"))
+        assertTrue(Triggers.matches(call, mapOf("state" to "ringing", "call_number" to "+48600100200")))
+        assertFalse(Triggers.matches(call, mapOf("state" to "idle", "call_number" to "+48600100200")))
+        assertTrue(Triggers.matches(Block("t.ringer", mapOf("mode" to "any")), mapOf("ringer" to "silent")))
+    }
+
+    @Test
+    fun presetsAreGroupedAndUnique() {
+        assertTrue(Presets.all.size >= 40)
+        assertEquals(Presets.all.size, Presets.all.map { it.title }.toSet().size)
+        Presets.all.forEach { assertTrue(it.title, it.group in com.blacksingularities.openroutine.model.PresetGroup.order) }
     }
 }

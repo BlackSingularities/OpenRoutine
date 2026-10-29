@@ -16,6 +16,7 @@ import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.provider.AlarmClock
 import android.provider.Settings
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
@@ -183,8 +184,122 @@ object Actions {
                 ctx.sendBroadcast(intent)
             }
             "a.log" -> Repo.log(run.routine.name, p("text"))
+            "a.volume_step" -> {
+                val am = ctx.getSystemService(AudioManager::class.java)
+                val dir = when (b["cmd"]) {
+                    "down" -> AudioManager.ADJUST_LOWER
+                    "mute" -> AudioManager.ADJUST_MUTE
+                    "unmute" -> AudioManager.ADJUST_UNMUTE
+                    "toggle_mute" -> AudioManager.ADJUST_TOGGLE_MUTE
+                    else -> AudioManager.ADJUST_RAISE
+                }
+                am.adjustStreamVolume(DeviceState.stream(b["stream"]), dir, 0)
+            }
+            "a.screen_timeout" -> {
+                if (!Settings.System.canWrite(ctx)) error("Brak zgody na zmianę ustawień systemu")
+                val sec = (b["seconds"].trim().toIntOrNull() ?: 60).coerceIn(5, 3600)
+                Settings.System.putInt(ctx.contentResolver, Settings.System.SCREEN_OFF_TIMEOUT, sec * 1000)
+            }
+            "a.rotation" -> {
+                if (!Settings.System.canWrite(ctx)) error("Brak zgody na zmianę ustawień systemu")
+                val cr = ctx.contentResolver
+                val current = Settings.System.getInt(cr, Settings.System.ACCELEROMETER_ROTATION, 0) == 1
+                val target = when (b["state"]) { "on" -> true; "off" -> false; else -> !current }
+                Settings.System.putInt(cr, Settings.System.ACCELEROMETER_ROTATION, if (target) 1 else 0)
+            }
+            "a.notify_clear" -> Notifier.clearRoutines(ctx)
+            "a.dial" -> {
+                val number = p("number").trim()
+                if (number.isEmpty()) error("Brak numeru")
+                Launcher.start(ctx, Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + Uri.encode(number))), "Zadzwoń: $number")
+            }
+            "a.email" -> {
+                val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"))
+                    .putExtra(Intent.EXTRA_EMAIL, arrayOf(p("to").trim()))
+                    .putExtra(Intent.EXTRA_SUBJECT, p("subject"))
+                    .putExtra(Intent.EXTRA_TEXT, p("body"))
+                Launcher.start(ctx, intent, "Napisz e-mail: ${p("subject")}")
+            }
+            "a.alarm" -> {
+                val t = Fmt.parseTime(p("time")) ?: error("Zła godzina „${p("time")}”")
+                val intent = Intent(AlarmClock.ACTION_SET_ALARM)
+                    .putExtra(AlarmClock.EXTRA_HOUR, t / 60)
+                    .putExtra(AlarmClock.EXTRA_MINUTES, t % 60)
+                    .putExtra(AlarmClock.EXTRA_SKIP_UI, b["silent"] == "yes")
+                if (p("label").isNotBlank()) intent.putExtra(AlarmClock.EXTRA_MESSAGE, p("label"))
+                Launcher.start(ctx, intent, "Budzik na ${Fmt.formatTime(t)}")
+            }
+            "a.timer" -> {
+                val min = p("minutes").trim().replace(',', '.').toDoubleOrNull() ?: error("Zła liczba minut")
+                val intent = Intent(AlarmClock.ACTION_SET_TIMER)
+                    .putExtra(AlarmClock.EXTRA_LENGTH, (min * 60).roundToInt().coerceIn(1, 86_400))
+                    .putExtra(AlarmClock.EXTRA_SKIP_UI, b["silent"] == "yes")
+                if (p("label").isNotBlank()) intent.putExtra(AlarmClock.EXTRA_MESSAGE, p("label"))
+                Launcher.start(ctx, intent, "Minutnik ${Fmt.minutes(p("minutes"))}")
+            }
+            "a.navigate" -> {
+                val place = p("place").trim()
+                if (place.isEmpty()) error("Brak adresu")
+                Launcher.start(ctx, Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode(place))), "Nawiguj do $place")
+            }
+            "a.settings" -> Launcher.start(ctx, settingsIntent(ctx, b["page"]), "Otwórz ustawienia")
+            "a.text_var" -> setVar(run, b["save_to"], Fmt.text(b["op"], p("input"), p("arg1"), p("arg2")))
+            "a.random_var" -> {
+                val lo = p("min").trim().toIntOrNull() ?: 0
+                val hi = p("max").trim().toIntOrNull() ?: 100
+                setVar(run, b["name"], kotlin.random.Random.nextInt(minOf(lo, hi), maxOf(lo, hi) + 1).toString())
+            }
+            "a.date_var" -> {
+                val at = java.time.LocalDateTime.now().plusMinutes(p("offset").trim().toLongOrNull() ?: 0)
+                val fmt = runCatching { java.time.format.DateTimeFormatter.ofPattern(p("format").ifBlank { "yyyy-MM-dd HH:mm" }, java.util.Locale.forLanguageTag("pl")) }
+                    .getOrElse { error("Zły format daty: ${it.message}") }
+                setVar(run, b["name"], at.format(fmt))
+            }
+            "a.json_var" -> setVar(run, b["name"], Json.path(p("source"), p("path")) ?: error("Nie ma „${p("path")}” w JSON"))
+            "a.read_file" -> {
+                val text = withContext(Dispatchers.IO) { Files.readText(ctx, b["folder"], p("name").trim()) }
+                setVar(run, b["save_to"], text)
+            }
+            "a.delete_var" -> {
+                val name = b["name"].trim().removePrefix("{").removeSuffix("}")
+                run.vars.remove(name)
+                Repo.removeVar(name)
+            }
+            "a.skip_if" -> {
+                val name = b["name"].trim().removePrefix("{").removeSuffix("}")
+                if (Fmt.compare(run.vars[name], b["op"], p("value"))) throw SkipActions((p("count").trim().toIntOrNull() ?: 1).coerceAtLeast(0))
+            }
+            "a.wait_until" -> {
+                val t = Fmt.parseTime(p("time")) ?: error("Zła godzina „${p("time")}”")
+                val now = java.time.LocalDateTime.now()
+                val at = Fmt.nextDaily(t, "1234567", now)
+                delay(java.time.Duration.between(now, at).toMillis().coerceAtLeast(0))
+            }
             else -> error("Nieznana akcja ${b.type}")
         }
+    }
+
+    private fun setVar(run: Run, rawName: String, value: String) {
+        val name = rawName.trim().removePrefix("{").removeSuffix("}")
+        if (name.isEmpty()) error("Brak nazwy zmiennej")
+        run.vars[name] = value
+        Repo.setVar(name, value)
+    }
+
+    private fun settingsIntent(ctx: Context, page: String): Intent = when (page) {
+        "wifi" -> Intent(Settings.ACTION_WIFI_SETTINGS)
+        "bluetooth" -> Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
+        "mobile" -> Intent(Settings.ACTION_DATA_ROAMING_SETTINGS)
+        "location" -> Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+        "airplane" -> Intent(Settings.ACTION_AIRPLANE_MODE_SETTINGS)
+        "display" -> Intent(Settings.ACTION_DISPLAY_SETTINGS)
+        "sound" -> Intent(Settings.ACTION_SOUND_SETTINGS)
+        "battery" -> Intent(Intent.ACTION_POWER_USAGE_SUMMARY)
+        "nfc" -> Intent(Settings.ACTION_NFC_SETTINGS)
+        "hotspot" -> Intent(Settings.ACTION_WIRELESS_SETTINGS)
+        "internet" -> Intent(Settings.Panel.ACTION_INTERNET_CONNECTIVITY)
+        "volume" -> Intent(Settings.Panel.ACTION_VOLUME)
+        else -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + ctx.packageName))
     }
 
     private suspend fun files(run: Run, b: Block) = withContext(Dispatchers.IO) {
@@ -299,6 +414,23 @@ object Torch {
     @Volatile private var on = false
     private var registered = false
 
+    /** Bieżący stan latarki; pierwsze wywołanie zaczyna śledzić zmiany. */
+    fun on(ctx: Context): Boolean {
+        runCatching { watch(ctx.getSystemService(CameraManager::class.java)) }
+        return on
+    }
+
+    private fun watch(cm: CameraManager) {
+        if (registered) return
+        val id = cameraId(cm)
+        registered = true
+        cm.registerTorchCallback(object : CameraManager.TorchCallback() {
+            override fun onTorchModeChanged(cameraId: String, enabled: Boolean) {
+                if (cameraId == id) on = enabled
+            }
+        }, android.os.Handler(android.os.Looper.getMainLooper()))
+    }
+
     private fun cameraId(cm: CameraManager): String =
         cm.cameraIdList.firstOrNull { cm.getCameraCharacteristics(it).get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true }
             ?: error("Brak latarki w urządzeniu")
@@ -306,14 +438,7 @@ object Torch {
     fun set(ctx: Context, state: String) {
         val cm = ctx.getSystemService(CameraManager::class.java)
         val id = cameraId(cm)
-        if (!registered) {
-            registered = true
-            cm.registerTorchCallback(object : CameraManager.TorchCallback() {
-                override fun onTorchModeChanged(cameraId: String, enabled: Boolean) {
-                    if (cameraId == id) on = enabled
-                }
-            }, android.os.Handler(android.os.Looper.getMainLooper()))
-        }
+        watch(cm)
         val target = when (state) {
             "on" -> true
             "off" -> false
@@ -336,6 +461,24 @@ object Launcher {
         } else {
             val pi = PendingIntent.getActivity(ctx, label.hashCode(), intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             Notifier.show(ctx, label, "Dotknij, aby kontynuować", high = true, tap = pi, channel = Notifier.CHANNEL_LAUNCH)
+        }
+    }
+}
+
+/** Odczyt wartości z JSON-a po ścieżce „a.b.0.c”. */
+object Json {
+    fun path(source: String, path: String): String? {
+        var node: Any? = org.json.JSONTokener(source.trim()).nextValue()
+        for (key in path.split('.').map { it.trim() }.filter { it.isNotEmpty() }) {
+            node = when (val n = node) {
+                is org.json.JSONObject -> if (n.has(key)) n.get(key) else return null
+                is org.json.JSONArray -> key.toIntOrNull()?.takeIf { it in 0 until n.length() }?.let { n.get(it) } ?: return null
+                else -> return null
+            }
+        }
+        return when (val n = node) {
+            null, org.json.JSONObject.NULL -> ""
+            else -> n.toString()
         }
     }
 }

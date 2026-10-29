@@ -11,13 +11,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -52,14 +57,16 @@ fun AppRoot(vm: AppViewModel) {
         if (draft != null) {
             EditorScreen(vm, draft)
         } else {
-            Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-                Header(vm.tab)
-                Box(Modifier.weight(1f)) {
-                    when (vm.tab) {
-                        Tab.ROUTINES -> RoutinesScreen(vm)
-                        Tab.TEMPLATES -> TemplatesScreen(vm)
-                        Tab.LOG -> LogScreen(vm)
-                        Tab.MORE -> MoreScreen(vm)
+            Column(Modifier.fillMaxSize()) {
+                Column(Modifier.weight(1f).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))) {
+                    Header(vm.tab)
+                    Box(Modifier.weight(1f)) {
+                        when (vm.tab) {
+                            Tab.ROUTINES -> RoutinesScreen(vm)
+                            Tab.TEMPLATES -> TemplatesScreen(vm)
+                            Tab.LOG -> LogScreen(vm)
+                            Tab.MORE -> MoreScreen(vm)
+                        }
                     }
                 }
                 BottomTabs(vm.tab) { vm.tab = it }
@@ -84,34 +91,44 @@ private fun tabIcon(t: Tab): ImageVector = when (t) {
     Tab.MORE -> Icons.Rounded.Tune
 }
 
+/** Dolny pasek: na całą szerokość, bez obramowania, przyklejony do dołu ekranu (pod nim pasek nawigacji systemu). */
 @Composable
 private fun BottomTabs(selected: Tab, onSelect: (Tab) -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(50))
-            .background(Color.White.copy(alpha = 0.06f))
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+            .background(Palette.PanelHigh)
+            .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.displayCutout).only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
+            .height(64.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Tab.entries.forEach { t ->
             val sel = t == selected
-            Row(
+            Column(
                 Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(50))
-                    .background(if (sel) Color.White else Color.Transparent)
-                    .clickable { onSelect(t) }
-                    .padding(vertical = 10.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
+                    .fillMaxHeight()
+                    .clickable { onSelect(t) },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
             ) {
-                Icon(tabIcon(t), null, tint = if (sel) Palette.Ink else Palette.TextDim, modifier = Modifier.size(18.dp))
-                if (sel) {
-                    Spacer(Modifier.width(6.dp))
-                    Text(t.title, color = Palette.Ink, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(if (sel) Color.White else Color.Transparent)
+                        .padding(horizontal = 18.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(tabIcon(t), t.title, tint = if (sel) Palette.Ink else Palette.TextDim, modifier = Modifier.size(20.dp))
                 }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    t.title,
+                    color = if (sel) Color.White else Palette.TextDim,
+                    fontSize = 11.sp,
+                    fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
+                    maxLines = 1,
+                )
             }
         }
     }

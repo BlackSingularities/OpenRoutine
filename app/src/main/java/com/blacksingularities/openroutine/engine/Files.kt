@@ -78,4 +78,11 @@ object Files {
             resolver.openOutputStream(uri, "wt")!!.use { it.write(line.toByteArray()) }
         }
     }
+
+    /** Treść pliku tekstowego z folderu (najwyżej 64 KB). */
+    fun readText(ctx: Context, tree: String, name: String): String {
+        val doc = list(ctx, tree).firstOrNull { !it.isDir && it.name.equals(name, ignoreCase = true) } ?: error("Nie ma pliku $name")
+        return ctx.contentResolver.openInputStream(doc.uri)?.use { it.readBytes().take(65_536).toByteArray().decodeToString() }
+            ?: error("Nie można odczytać $name")
+    }
 }

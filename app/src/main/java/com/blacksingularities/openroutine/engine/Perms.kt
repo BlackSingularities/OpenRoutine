@@ -25,15 +25,19 @@ object Perms {
         Need.OVERLAY -> Settings.canDrawOverlays(ctx)
         Need.SMS_RECEIVE -> has(ctx, Manifest.permission.RECEIVE_SMS)
         Need.SMS_SEND -> has(ctx, Manifest.permission.SEND_SMS)
+        Need.PHONE_STATE -> has(ctx, Manifest.permission.READ_PHONE_STATE) && has(ctx, Manifest.permission.READ_CALL_LOG)
+        Need.BLUETOOTH_CONNECT -> Build.VERSION.SDK_INT < 31 || has(ctx, Manifest.permission.BLUETOOTH_CONNECT)
     }
 
     private fun has(ctx: Context, p: String) = ContextCompat.checkSelfPermission(ctx, p) == PackageManager.PERMISSION_GRANTED
 
-    /** Uprawnienie nadawane w oknie systemowym w aplikacji (runtime) – lub null, gdy w ustawieniach. */
-    fun runtime(need: Need): String? = when (need) {
-        Need.NOTIFICATIONS -> if (Build.VERSION.SDK_INT >= 33) Manifest.permission.POST_NOTIFICATIONS else null
-        Need.SMS_RECEIVE -> Manifest.permission.RECEIVE_SMS
-        Need.SMS_SEND -> Manifest.permission.SEND_SMS
+    /** Uprawnienia nadawane w oknie systemowym w aplikacji (runtime) – lub null, gdy w ustawieniach. */
+    fun runtime(need: Need): Array<String>? = when (need) {
+        Need.NOTIFICATIONS -> if (Build.VERSION.SDK_INT >= 33) arrayOf(Manifest.permission.POST_NOTIFICATIONS) else null
+        Need.SMS_RECEIVE -> arrayOf(Manifest.permission.RECEIVE_SMS)
+        Need.SMS_SEND -> arrayOf(Manifest.permission.SEND_SMS)
+        Need.PHONE_STATE -> arrayOf(Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_CALL_LOG)
+        Need.BLUETOOTH_CONNECT -> if (Build.VERSION.SDK_INT >= 31) arrayOf(Manifest.permission.BLUETOOTH_CONNECT) else null
         else -> null
     }
 

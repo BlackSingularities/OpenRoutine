@@ -46,35 +46,43 @@ fun TemplatesScreen(vm: AppViewModel) {
                 color = Palette.TextDim, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
             )
         }
-        items(Presets.all, key = { it.title }) { p ->
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White.copy(alpha = 0.07f))
-                    .clickable { vm.fromPreset(p) }
-                    .padding(14.dp),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Row(horizontalArrangement = Arrangement.spacedBy((-6).dp)) {
-                        (p.routine.triggers + p.routine.conditions + p.routine.actions).map { it.type }.distinct().take(4).forEach { t ->
-                            Box(
-                                Modifier.size(30.dp).clip(RoundedCornerShape(50)).background(Palette.PanelHigh).padding(2.dp)
-                                    .clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.12f)),
-                                contentAlignment = Alignment.Center,
-                            ) { Icon(blockIcon(t), null, tint = Color.White, modifier = Modifier.size(15.dp)) }
+        Presets.all.groupBy { it.group }.forEach { (group, presets) ->
+            item(key = "group:$group") {
+                Text(
+                    group.uppercase(), color = Palette.TextFaint, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp,
+                    modifier = Modifier.padding(start = 6.dp, top = 10.dp),
+                )
+            }
+            items(presets, key = { it.title }) { p ->
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color.White.copy(alpha = 0.07f))
+                        .clickable { vm.fromPreset(p) }
+                        .padding(14.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(horizontalArrangement = Arrangement.spacedBy((-6).dp)) {
+                            (p.routine.triggers + p.routine.conditions + p.routine.actions).map { it.type }.distinct().take(4).forEach { t ->
+                                Box(
+                                    Modifier.size(30.dp).clip(RoundedCornerShape(50)).background(Palette.PanelHigh).padding(2.dp)
+                                        .clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.12f)),
+                                    contentAlignment = Alignment.Center,
+                                ) { Icon(blockIcon(t), null, tint = Color.White, modifier = Modifier.size(15.dp)) }
+                            }
+                        }
+                        Text(p.title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.weight(1f).padding(horizontal = 12.dp))
+                        Box(Modifier.size(32.dp).clip(RoundedCornerShape(50)).background(Color.White), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Rounded.Add, "Użyj", tint = Palette.Ink, modifier = Modifier.size(18.dp))
                         }
                     }
-                    Text(p.title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.weight(1f).padding(horizontal = 12.dp))
-                    Box(Modifier.size(32.dp).clip(RoundedCornerShape(50)).background(Color.White), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Rounded.Add, "Użyj", tint = Palette.Ink, modifier = Modifier.size(18.dp))
-                    }
+                    Text(p.description, fontSize = 13.sp, color = Palette.TextDim, lineHeight = 18.sp, modifier = Modifier.padding(top = 8.dp))
+                    Text(
+                        "Gdy " + p.routine.triggers.joinToString(" lub ") { it.summary() } + " → " + p.routine.actions.joinToString(", ") { it.summary() },
+                        fontSize = 11.sp, color = Palette.TextFaint, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp),
+                    )
                 }
-                Text(p.description, fontSize = 13.sp, color = Palette.TextDim, lineHeight = 18.sp, modifier = Modifier.padding(top = 8.dp))
-                Text(
-                    "Gdy " + p.routine.triggers.joinToString(" lub ") { it.summary() } + " → " + p.routine.actions.joinToString(", ") { it.summary() },
-                    fontSize = 11.sp, color = Palette.TextFaint, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp),
-                )
             }
         }
     }

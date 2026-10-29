@@ -20,6 +20,9 @@ import kotlin.random.Random
 /** Sygnał przerwania rutyny przez akcję „Przerwij, jeśli…”. */
 class StopRoutine : Exception()
 
+/** Sygnał akcji „Pomiń akcje, jeśli…”: pomiń [count] kolejnych akcji. */
+class SkipActions(val count: Int) : Exception()
+
 /** Kontekst wykonania: zmienne widoczne dla kolejnych akcji. */
 class Run(val ctx: Context, val routine: Routine, val event: Event, val vars: MutableMap<String, String>, val depth: Int) {
     fun expand(text: String) = Fmt.expand(text, vars)
@@ -72,7 +75,16 @@ object Engine {
             "weekday" to Fmt.dayNames[now.dayOfWeek.value - 1],
             "hour" to now.hour.toString(),
             "minute" to now.minute.toString(),
+            "day" to now.dayOfMonth.toString(),
+            "month" to now.monthValue.toString(),
+            "year" to now.year.toString(),
+            "timestamp" to (System.currentTimeMillis() / 1000).toString(),
             "battery" to DeviceState.battery(ctx).toString(),
+            "charging" to if (DeviceState.charging(ctx)) "tak" else "nie",
+            "network" to DeviceState.network(ctx),
+            "ringer" to DeviceState.ringer(ctx),
+            "volume_music" to DeviceState.volume(ctx, "music").toString(),
+            "battery_temp" to (DeviceState.batteryTemp(ctx)?.toString() ?: ""),
             "routine" to r.name,
             "random" to Random.nextInt(0, 101).toString(),
         )
@@ -108,9 +120,13 @@ object Engine {
 
         Repo.markRun(fresh.id)
         var errors = 0
-        for (a in fresh.actions) {
+        var i = 0
+        while (i < fresh.actions.size) {
+            val a = fresh.actions[i++]
             try {
                 Actions.run(run, a)
+            } catch (s: SkipActions) {
+                i += s.count
             } catch (_: StopRoutine) {
                 Repo.log(fresh.name, "Zatrzymano przez „Przerwij, jeśli…”")
                 return true
@@ -132,7 +148,7 @@ object Engine {
 /** Czy zdarzenie pasuje do parametrów wyzwalacza. */
 object Triggers {
     fun matches(b: Block, data: Map<String, String>): Boolean = when (b.type) {
-        "t.time", "t.interval", "t.folder" -> data["block"] == b.id
+        "t.time", "t.interval", "t.folder", "t.monthly", "t.once" -> data["block"] == b.id
         "t.battery" -> {
             val now = data["battery"]?.toIntOrNull()
             val prev = data["prev"]?.toIntOrNull()
@@ -141,7 +157,26 @@ object Triggers {
             else if (b["dir"] == "above") prev < level && now >= level
             else prev > level && now <= level
         }
-        "t.power", "t.screen", "t.headset", "t.wifi", "t.bluetooth", "t.airplane", "t.powersave" -> b["state"] == data["state"]
+        "t.power", "t.screen", "t.headset", "t.wifi", "t.bluetooth", "t.airplane", "t.powersave", "t.internet", "t.dnd" ->
+            b["state"] == data["state"]
+        "t.battery_temp" -> {
+            val now = data["battery_temp"]?.toDoubleOrNull()
+            val prev = data["prev"]?.toDoubleOrNull()
+            val limit = b["temp"].trim().replace(',', '.').toDoubleOrNull()
+            if (now == null || prev == null || limit == null) false
+            else if (b["dir"] == "below") prev > limit && now <= limit
+            else prev < limit && now >= limit
+        }
+        "t.ringer" -> b["mode"] == "any" || b["mode"] == data["ringer"]
+        "t.package" -> b["event"] == data["event"]
+        "t.bt_device" -> {
+            val name = b["name"].trim()
+            b["state"] == data["state"] && (name.isEmpty() || data["bt_name"].orEmpty().contains(name, ignoreCase = true))
+        }
+        "t.call" -> {
+            val number = b["number"].trim().filter { it.isDigit() }
+            b["state"] == data["state"] && (number.isEmpty() || data["call_number"].orEmpty().filter { it.isDigit() }.contains(number))
+        }
         "t.notification" -> {
             val app = b["app"].trim()
             val text = b["contains"].trim()

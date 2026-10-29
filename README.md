@@ -22,17 +22,20 @@ Najnowszy plik jest w **[Releases → Latest](../../releases/latest)**. Wydanie 
 
 Dodatkowo: odstęp między uruchomieniami, przycisk „Wypróbuj”, skrót na ekranie głównym, duplikowanie i kolejność rutyn.
 
-### Wyzwalacze (16)
-O godzinie (dni tygodnia) · Co pewien czas · Po uruchomieniu telefonu · Ręcznie lub skrótem · Poziom baterii (spada do / rośnie do) · Ładowarka · Ekran (włączony, wyłączony, odblokowany) · Słuchawki · Wi-Fi · Bluetooth · Tryb samolotowy · Oszczędzanie baterii · Nowy plik w folderze (wzorce `*.pdf;*.jpg`) · Powiadomienie aplikacji (filtr aplikacji i tekstu) · Przychodzący SMS (nadawca, treść) · Zdarzenie z innej aplikacji.
+### Wyzwalacze (25)
+O godzinie (dni tygodnia) · W dniu miesiąca · Jednorazowo (data i godzina) · Co pewien czas · Po uruchomieniu telefonu · Ręcznie lub skrótem · Poziom baterii (spada do / rośnie do) · Ładowarka · Ekran (włączony, wyłączony, odblokowany) · Słuchawki · Wi-Fi · Bluetooth · Tryb samolotowy · Oszczędzanie baterii · Nowy plik w folderze (wzorce `*.pdf;*.jpg`) · Powiadomienie aplikacji (filtr aplikacji i tekstu) · Przychodzący SMS (nadawca, treść) · Połączenie telefoniczne (dzwoni, rozmowa, koniec; filtr numeru) · Internet (dostępny / brak) · Urządzenie Bluetooth (nazwa) · Zmiana trybu dzwonka · Zmiana Nie przeszkadzać · Temperatura baterii · Instalacja / aktualizacja / usunięcie aplikacji · Zdarzenie z innej aplikacji.
 
-### Warunki (14)
-Pora dnia (także przez północ) · Dzień tygodnia · Poziom baterii · Ładowanie · Sieć (Wi-Fi, komórkowa, dowolna, brak) · Ekran · Słuchawki (przewodowe i Bluetooth) · Tryb dzwonka · Nie przeszkadzać · Oszczędzanie baterii · Bluetooth · Zmienna (=, ≠, zawiera, >, <, pusta, ma wartość) · Plik w folderze · Losowo.
+### Warunki (26)
+Pora dnia (także przez północ) · Dzień tygodnia · Poziom baterii · Ładowanie · Sieć (Wi-Fi, komórkowa, dowolna, brak) · Ekran · Słuchawki (przewodowe i Bluetooth) · Tryb dzwonka · Nie przeszkadzać · Oszczędzanie baterii · Bluetooth · Zmienna (=, ≠, zawiera, nie zawiera, zaczyna się / kończy na, >, ≥, <, ≤, wyrażenie regularne, pusta, ma wartość) · Plik w folderze · Losowo · Miesiąc · Zakres dat (także co roku, np. 12-20…01-06) · Tryb samolotowy · Blokada ekranu · Gra muzyka · Trwa rozmowa · Poziom głośności · Temperatura baterii · Latarka · Aplikacja zainstalowana · Stan innej rutyny · Od ostatniego uruchomienia.
 
-### Akcje (27)
-Powiadomienie · Krótki komunikat · Powiedz na głos (TTS) · Wibracja (wzory) · Dźwięk · Tryb dzwonka · Nie przeszkadzać · Głośność strumieni · Jasność (ręczna/automatyczna) · Latarka · Sterowanie muzyką · Otwórz aplikację · Otwórz stronę / tel: / geo: · Żądanie HTTP (metoda, nagłówki, treść, odpowiedź do zmiennej) · Udostępnij tekst · Schowek · Wyślij SMS · Kopiuj / przenieś / usuń pliki (wzorzec, wiek) · Zapis tekstu do pliku · Ustaw zmienną · Licz na zmiennej · Czekaj · Przerwij, jeśli… · Uruchom inną rutynę · Włącz / wyłącz rutynę · Wyślij intencję · Wpis do dziennika.
+### Akcje (45)
+Powiadomienie · Krótki komunikat · Powiedz na głos (TTS) · Wibracja (wzory) · Dźwięk · Tryb dzwonka · Nie przeszkadzać · Głośność strumieni · Jasność (ręczna/automatyczna) · Latarka · Sterowanie muzyką · Otwórz aplikację · Otwórz stronę / tel: / geo: · Żądanie HTTP (metoda, nagłówki, treść, odpowiedź do zmiennej) · Udostępnij tekst · Schowek · Wyślij SMS · Kopiuj / przenieś / usuń pliki (wzorzec, wiek) · Zapis tekstu do pliku · Ustaw zmienną · Licz na zmiennej · Czekaj · Przerwij, jeśli… · Uruchom inną rutynę · Włącz / wyłącz rutynę · Wyślij intencję · Wpis do dziennika · Głośniej / ciszej / wycisz · Czas wygaszania ekranu · Obracanie ekranu · Usuń powiadomienia rutyn · Zadzwoń · Napisz e-mail · Ustaw budzik · Ustaw minutnik · Nawiguj do · Otwórz ustawienia (Wi-Fi, Bluetooth, lokalizacja…) · Przetwórz tekst (regex, zamiana, cyfry, fragment…) · Losowa liczba · Data do zmiennej (format, przesunięcie) · Odczytaj JSON (ścieżka `a.b.0.c`) · Wczytaj plik do zmiennej · Usuń zmienną · Pomiń akcje, jeśli… (prosty „jeśli–to”) · Czekaj do godziny.
+
+### Szablony (42)
+Pogrupowane: dzień i noc, bateria, praca, łączność i podróże, wiadomości i połączenia, zdrowie, pliki, integracje – m.in. pogoda o poranku z wttr.in, kod z SMS do schowka, auto przez Bluetooth, pauza muzyki na rozmowę, przegrzanie baterii, pomodoro, autoodpowiedź na urlopie, stan telefonu do Home Assistant.
 
 ### Zmienne
-W każdym polu tekstowym: `{time}`, `{date}`, `{datetime}`, `{weekday}`, `{battery}`, `{routine}`, `{trigger}`, `{random}`, dane wyzwalacza (`{file}`, `{file_uri}`, `{sms_from}`, `{sms_body}`, `{notif_app}`, `{notif_title}`, `{notif_text}`, `{extra}`), `{http_response}`, `{http_code}`, `{files_count}` i własne zmienne.
+W każdym polu tekstowym: `{time}`, `{date}`, `{datetime}`, `{weekday}`, `{battery}`, `{routine}`, `{trigger}`, `{random}`, `{hour}`, `{minute}`, `{day}`, `{month}`, `{year}`, `{timestamp}`, `{charging}`, `{network}`, `{ringer}`, `{volume_music}`, `{battery_temp}`, dane wyzwalacza (`{file}`, `{file_uri}`, `{sms_from}`, `{sms_body}`, `{notif_app}`, `{notif_title}`, `{notif_text}`, `{call_number}`, `{bt_name}`, `{package}`, `{app_name}`, `{extra}`), `{http_response}`, `{http_code}`, `{files_count}` i własne zmienne.
 
 ### Integracje
 Inne aplikacje uruchamiają wyzwalacz „Zdarzenie z innej aplikacji” intencją z tokenem z zakładki **Więcej**:
