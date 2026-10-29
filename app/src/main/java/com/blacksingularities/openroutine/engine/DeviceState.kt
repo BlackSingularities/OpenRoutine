@@ -1,5 +1,6 @@
 package com.blacksingularities.openroutine.engine
 
+import android.app.KeyguardManager
 import android.app.NotificationManager
 import android.bluetooth.BluetoothManager
 import android.content.Context
@@ -11,6 +12,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.os.PowerManager
+import android.provider.Settings
 
 /** Bieżący stan urządzenia dla warunków i zmiennych. */
 object DeviceState {
@@ -72,4 +74,41 @@ object DeviceState {
 
     fun bluetoothOn(ctx: Context): Boolean =
         runCatching { ctx.getSystemService(BluetoothManager::class.java)?.adapter?.isEnabled == true }.getOrDefault(false)
+
+    /** Temperatura baterii w °C (z dokładnością do 0,1) albo null. */
+    fun batteryTemp(ctx: Context): Double? {
+        val t = batteryIntent(ctx)?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, Int.MIN_VALUE) ?: return null
+        return if (t == Int.MIN_VALUE) null else t / 10.0
+    }
+
+    fun airplane(ctx: Context): Boolean =
+        Settings.Global.getInt(ctx.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) != 0
+
+    fun locked(ctx: Context): Boolean = ctx.getSystemService(KeyguardManager::class.java)?.isKeyguardLocked == true
+
+    fun musicActive(ctx: Context): Boolean = ctx.getSystemService(AudioManager::class.java)?.isMusicActive == true
+
+    fun inCall(ctx: Context): Boolean {
+        val mode = ctx.getSystemService(AudioManager::class.java)?.mode ?: return false
+        return mode == AudioManager.MODE_IN_CALL || mode == AudioManager.MODE_IN_COMMUNICATION
+    }
+
+    fun stream(name: String): Int = when (name) {
+        "ring" -> AudioManager.STREAM_RING
+        "notification" -> AudioManager.STREAM_NOTIFICATION
+        "alarm" -> AudioManager.STREAM_ALARM
+        "call" -> AudioManager.STREAM_VOICE_CALL
+        else -> AudioManager.STREAM_MUSIC
+    }
+
+    /** Głośność strumienia w procentach. */
+    fun volume(ctx: Context, stream: String): Int {
+        val am = ctx.getSystemService(AudioManager::class.java) ?: return 0
+        val s = stream(stream)
+        val max = am.getStreamMaxVolume(s).coerceAtLeast(1)
+        return am.getStreamVolume(s) * 100 / max
+    }
+
+    fun installed(ctx: Context, pkg: String): Boolean =
+        pkg.isNotBlank() && runCatching { ctx.packageManager.getPackageInfo(pkg, 0) }.isSuccess
 }

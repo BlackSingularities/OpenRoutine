@@ -1,9 +1,11 @@
 package com.blacksingularities.openroutine
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -19,7 +21,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // Przezroczyste paski systemu bez przyciemnienia – dolny pasek aplikacji sięga do samej krawędzi ekranu.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+        )
+        window.isNavigationBarContrastEnforced = false
         UpdateManager.clearUpdatedNotification(this)
         handle(intent)
         setContent { OpenRoutineTheme { AppRoot(vm) } }

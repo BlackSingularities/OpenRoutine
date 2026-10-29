@@ -5,10 +5,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
+import android.telephony.TelephonyManager
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import com.blacksingularities.openroutine.App
 import com.blacksingularities.openroutine.data.Repo
+import com.blacksingularities.openroutine.model.Need
 import com.blacksingularities.openroutine.update.UpdateManager
 
 /** Po starcie telefonu i po aktualizacji: odtwarza alarmy i nasłuch, uruchamia rutyny „po uruchomieniu”. */
@@ -30,6 +32,33 @@ class SmsReceiver : BroadcastReceiver() {
         val from = parts.first().displayOriginatingAddress.orEmpty()
         val body = parts.joinToString("") { it.displayMessageBody.orEmpty() }
         Engine.dispatch("t.sms", mapOf("sms_from" to from, "sms_body" to body))
+    }
+}
+
+/** Połączenia telefoniczne: dzwoni, rozmowa, zakończone. Numer jest dostępny tylko przy zgodzie na rejestr połączeń. */
+class CallReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action != TelephonyManager.ACTION_PHONE_STATE_CHANGED) return
+        val state = when (intent.getStringExtra(TelephonyManager.EXTRA_STATE)) {
+            TelephonyManager.EXTRA_STATE_RINGING -> "ringing"
+            TelephonyManager.EXTRA_STATE_OFFHOOK -> "offhook"
+            TelephonyManager.EXTRA_STATE_IDLE -> "idle"
+            else -> return
+        }
+        @Suppress("DEPRECATION")
+        val number = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER)
+        // Przy zgodzie na rejestr połączeń system wysyła zdarzenie dwa razy: z numerem i bez – bierzemy to z numerem.
+        if (number == null && Perms.granted(context, Need.PHONE_STATE)) return
+        val now = System.currentTimeMillis()
+        if (state == last && now - lastAt < 2_000) return
+        last = state
+        lastAt = now
+        Engine.dispatch("t.call", mapOf("state" to state, "call_number" to number.orEmpty()))
+    }
+
+    companion object {
+        @Volatile private var last = ""
+        @Volatile private var lastAt = 0L
     }
 }
 

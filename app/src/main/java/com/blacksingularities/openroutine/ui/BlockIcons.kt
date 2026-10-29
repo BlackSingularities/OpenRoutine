@@ -1,23 +1,35 @@
 package com.blacksingularities.openroutine.ui
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.AirplanemodeActive
+import androidx.compose.material.icons.rounded.Alarm
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.BatterySaver
 import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.BluetoothConnected
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Brightness6
 import androidx.compose.material.icons.rounded.Calculate
 import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Call
+import androidx.compose.material.icons.automirrored.rounded.CallSplit
 import androidx.compose.material.icons.rounded.Casino
 import androidx.compose.material.icons.rounded.ChatBubble
+import androidx.compose.material.icons.rounded.ClearAll
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.DataObject
+import androidx.compose.material.icons.rounded.DateRange
+import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.DoNotDisturbOn
+import androidx.compose.material.icons.rounded.Email
+import androidx.compose.material.icons.rounded.Event
+import androidx.compose.material.icons.rounded.EventAvailable
 import androidx.compose.material.icons.rounded.Extension
+import androidx.compose.material.icons.rounded.FileOpen
 import androidx.compose.material.icons.rounded.FilterAlt
 import androidx.compose.material.icons.rounded.FlashlightOn
 import androidx.compose.material.icons.rounded.Folder
@@ -27,7 +39,11 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.HourglassEmpty
 import androidx.compose.material.icons.rounded.Http
 import androidx.compose.material.icons.rounded.Hub
+import androidx.compose.material.icons.rounded.InstallMobile
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -36,14 +52,22 @@ import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.RecordVoiceOver
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.ScreenLockPortrait
+import androidx.compose.material.icons.rounded.ScreenRotation
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material.icons.rounded.Sms
 import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material.icons.rounded.TextFields
+import androidx.compose.material.icons.rounded.Thermostat
 import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.material.icons.rounded.Today
 import androidx.compose.material.icons.rounded.ToggleOn
 import androidx.compose.material.icons.rounded.TouchApp
+import androidx.compose.material.icons.rounded.Update
 import androidx.compose.material.icons.rounded.Vibration
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.blacksingularities.openroutine.model.Kind
@@ -91,6 +115,35 @@ fun blockIcon(type: String): ImageVector = when (type.substringAfter('.')) {
     "run_routine" -> Icons.Rounded.PlayArrow
     "toggle_routine" -> Icons.Rounded.ToggleOn
     "log" -> Icons.Rounded.History
+    "monthly" -> Icons.Rounded.Event
+    "once", "date_range" -> Icons.Rounded.EventAvailable
+    "month" -> Icons.Rounded.DateRange
+    "internet" -> Icons.Rounded.Language
+    "bt_device" -> Icons.Rounded.BluetoothConnected
+    "battery_temp" -> Icons.Rounded.Thermostat
+    "package", "app_installed" -> Icons.Rounded.InstallMobile
+    "call", "in_call", "dial" -> Icons.Rounded.Call
+    "locked" -> Icons.Rounded.Lock
+    "music" -> Icons.Rounded.MusicNote
+    "routine_enabled" -> Icons.Rounded.ToggleOn
+    "since_run" -> Icons.Rounded.Update
+    "volume_step" -> Icons.AutoMirrored.Rounded.VolumeUp
+    "screen_timeout" -> Icons.Rounded.ScreenLockPortrait
+    "rotation" -> Icons.Rounded.ScreenRotation
+    "notify_clear" -> Icons.Rounded.ClearAll
+    "email" -> Icons.Rounded.Email
+    "alarm" -> Icons.Rounded.Alarm
+    "timer" -> Icons.Rounded.Timer
+    "navigate" -> Icons.Rounded.Navigation
+    "settings" -> Icons.Rounded.Settings
+    "text_var" -> Icons.Rounded.TextFields
+    "random_var" -> Icons.Rounded.Casino
+    "date_var" -> Icons.Rounded.Today
+    "json_var" -> Icons.Rounded.DataObject
+    "read_file" -> Icons.Rounded.FileOpen
+    "delete_var" -> Icons.Rounded.DeleteSweep
+    "skip_if" -> Icons.AutoMirrored.Rounded.CallSplit
+    "wait_until" -> Icons.Rounded.AccessTime
     else -> Icons.Rounded.Extension
 }
 

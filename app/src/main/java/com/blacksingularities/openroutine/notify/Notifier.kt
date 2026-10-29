@@ -62,4 +62,10 @@ object Notifier {
             throw IllegalStateException("Brak zgody na powiadomienia")
         }
     }
+
+    /** Usuwa powiadomienia pokazane przez rutyny (bez stałego powiadomienia pracy w tle). */
+    fun clearRoutines(context: Context) {
+        val nm = context.getSystemService(NotificationManager::class.java)
+        nm.activeNotifications.filter { it.id != MONITOR_ID }.forEach { nm.cancel(it.tag, it.id) }
+    }
 }

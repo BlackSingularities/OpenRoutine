@@ -1,6 +1,7 @@
 package com.blacksingularities.openroutine.model
 
 import java.net.URLDecoder
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 /** Czyste funkcje pomocnicze: opisy, wzorce, godziny, zmienne w tekście. */
@@ -112,8 +113,14 @@ object Fmt {
             "eq" -> if (an != null && en != null) an == en else a.equals(expected, ignoreCase = true)
             "ne" -> if (an != null && en != null) an != en else !a.equals(expected, ignoreCase = true)
             "contains" -> a.contains(expected, ignoreCase = true)
+            "not_contains" -> !a.contains(expected, ignoreCase = true)
+            "starts" -> a.startsWith(expected, ignoreCase = true)
+            "ends" -> a.endsWith(expected, ignoreCase = true)
             "gt" -> an != null && en != null && an > en
+            "ge" -> an != null && en != null && an >= en
             "lt" -> an != null && en != null && an < en
+            "le" -> an != null && en != null && an <= en
+            "regex" -> runCatching { Regex(expected, RegexOption.IGNORE_CASE).containsMatchIn(a) }.getOrDefault(false)
             "empty" -> a.isBlank()
             "set" -> a.isNotBlank()
             else -> false
@@ -128,6 +135,9 @@ object Fmt {
             "sub" -> a - b
             "mul" -> a * b
             "div" -> if (b == 0.0) a else a / b
+            "mod" -> if (b == 0.0) a else a % b
+            "min" -> maxOf(a, b)
+            "max" -> minOf(a, b)
             else -> a + b
         }
         return if (r == Math.floor(r) && !r.isInfinite() && kotlin.math.abs(r) < 1e15) r.toLong().toString() else "%.4f".format(java.util.Locale.ROOT, r).trimEnd('0').trimEnd('.')
@@ -139,4 +149,77 @@ object Fmt {
             val i = line.indexOf(separator)
             if (i <= 0) null else line.substring(0, i).trim() to line.substring(i + 1).trim()
         }
+
+    /** Działania na tekście dla akcji „Przetwórz tekst”. */
+    fun text(op: String, input: String, arg1: String, arg2: String): String = when (op) {
+        "upper" -> input.uppercase()
+        "lower" -> input.lowercase()
+        "trim" -> input.trim()
+        "length" -> input.length.toString()
+        "replace" -> if (arg1.isEmpty()) input else input.replace(arg1, arg2, ignoreCase = true)
+        "regex" -> {
+            val m = runCatching { Regex(arg1, RegexOption.IGNORE_CASE).find(input) }.getOrNull()
+            when {
+                m == null -> ""
+                m.groupValues.size > 1 -> m.groupValues[1]
+                else -> m.value
+            }
+        }
+        "digits" -> input.filter { it.isDigit() }
+        "first_line" -> input.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
+        "substring" -> {
+            val from = (arg1.trim().toIntOrNull() ?: 0).coerceIn(0, input.length)
+            val to = (arg2.trim().toIntOrNull() ?: input.length).coerceIn(from, input.length)
+            input.substring(from, to)
+        }
+        "url_encode" -> java.net.URLEncoder.encode(input, "UTF-8")
+        else -> input
+    }
+
+    /** Numery miesięcy z tekstu „12, 1, 2”. */
+    fun months(text: String): Set<Int> =
+        text.split(',', ';', ' ').mapNotNull { it.trim().toIntOrNull() }.filter { it in 1..12 }.toSet()
+
+    /**
+     * Czy [date] mieści się w przedziale dat (włącznie). „MM-DD” oznacza każdy rok
+     * i może przechodzić przez Nowy Rok (12-20 … 01-06). Zwraca null przy złym formacie.
+     */
+    fun inDateRange(from: String, to: String, date: LocalDate): Boolean? {
+        val f = from.trim()
+        val t = to.trim()
+        if (f.length == 10 && t.length == 10) {
+            val a = runCatching { LocalDate.parse(f) }.getOrNull() ?: return null
+            val b = runCatching { LocalDate.parse(t) }.getOrNull() ?: return null
+            return !date.isBefore(a) && !date.isAfter(b)
+        }
+        fun md(s: String): Int? {
+            val p = s.takeLast(5).split('-')
+            if (p.size != 2) return null
+            val m = p[0].toIntOrNull() ?: return null
+            val d = p[1].toIntOrNull() ?: return null
+            return if (m in 1..12 && d in 1..31) m * 100 + d else null
+        }
+        val a = md(f) ?: return null
+        val b = md(t) ?: return null
+        val now = date.monthValue * 100 + date.dayOfMonth
+        return if (a <= b) now in a..b else now >= a || now <= b
+    }
+
+    /** Najbliższe wystąpienie dnia miesiąca (dni ponad długość miesiąca = ostatni dzień), ściśle po [now]. */
+    fun nextMonthly(day: Int, timeMin: Int, now: LocalDateTime): LocalDateTime {
+        val d = day.coerceIn(1, 31)
+        for (i in 0..12L) {
+            val month = now.toLocalDate().withDayOfMonth(1).plusMonths(i)
+            val at = month.withDayOfMonth(minOf(d, month.lengthOfMonth())).atTime(timeMin / 60, timeMin % 60)
+            if (at.isAfter(now)) return at
+        }
+        return now.plusMonths(1)
+    }
+
+    /** Data i godzina jednorazowego wyzwalacza; null przy złym formacie. */
+    fun parseDateTime(date: String, time: String): LocalDateTime? {
+        val d = runCatching { LocalDate.parse(date.trim()) }.getOrNull() ?: return null
+        val t = parseTime(time) ?: return null
+        return d.atTime(t / 60, t % 60)
+    }
 }

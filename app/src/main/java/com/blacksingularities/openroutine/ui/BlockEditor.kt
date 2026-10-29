@@ -296,7 +296,8 @@ private fun AppPicker(vm: AppViewModel, optional: Boolean, onDismiss: () -> Unit
 @Composable
 fun rememberNeedRequester(vm: AppViewModel): (Need) -> Unit {
     var pending by remember { mutableStateOf<Need?>(null) }
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+        val ok = result.values.all { it }
         val n = pending
         pending = null
         if (!ok && n != null) vm.openSettings(n)

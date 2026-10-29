@@ -14,7 +14,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.time.LocalDateTime
 import java.time.ZoneId
 
-/** Alarmy dla wyzwalaczy „O godzinie” i „Co pewien czas” – jeden alarm na klocek. */
+/** Alarmy dla wyzwalaczy czasowych (godzina, dzień miesiąca, jednorazowo, co pewien czas) – jeden alarm na klocek. */
 object Scheduler {
     private const val PREFS = "alarms"
 
@@ -45,6 +45,17 @@ object Scheduler {
                     "t.time" -> {
                         val t = Fmt.parseTime(b["time"]) ?: continue
                         Fmt.nextDaily(t, b["days"], LocalDateTime.now()).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    }
+                    "t.monthly" -> {
+                        val t = Fmt.parseTime(b["time"]) ?: continue
+                        val day = b["day"].trim().toIntOrNull() ?: continue
+                        Fmt.nextMonthly(day, t, LocalDateTime.now()).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    }
+                    "t.once" -> {
+                        val at = Fmt.parseDateTime(b["date"], b["time"]) ?: continue
+                        val ms = at.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        if (ms <= now) continue
+                        ms
                     }
                     "t.interval" -> {
                         val period = (b["minutes"].trim().toIntOrNull() ?: 60).coerceAtLeast(1) * 60_000L
