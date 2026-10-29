@@ -1,5 +1,7 @@
 # OpenRoutine
 
+<img src="artwork/app-icon.png" alt="OpenRoutine" width="128" />
+
 **Graficzny automat dla Twoich aplikacji: zdarzenie → warunek → akcja.** Na początek pliki, harmonogramy i jawnie udostępnione integracje – a do tego bateria, ekran, sieć, powiadomienia i SMS. Czarno-biały interfejs w stylu OpenPDF, bez reklam, śledzenia i konta. Rutyny zostają w telefonie.
 
 [![Build & Release](../../actions/workflows/android.yml/badge.svg)](../../actions/workflows/android.yml)
