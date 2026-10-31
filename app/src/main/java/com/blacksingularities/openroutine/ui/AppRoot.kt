@@ -1,5 +1,7 @@
 package com.blacksingularities.openroutine.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -97,37 +99,34 @@ private fun BottomTabs(selected: Tab, onSelect: (Tab) -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .background(Palette.PanelHigh)
+            .background(Palette.Ink)
             .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.displayCutout).only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
-            .height(64.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(horizontal = 6.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Tab.entries.forEach { t ->
             val sel = t == selected
+            // Styl wspólny dla aplikacji Open: wybrana zakładka to biały kafel z czarną ikoną i podpisem.
+            val bg by animateColorAsState(if (sel) Color.White else Color.Transparent, label = "tabBg")
+            val tint by animateColorAsState(if (sel) Color.Black else Palette.TextDim, label = "tabTint")
             Column(
                 Modifier
                     .weight(1f)
-                    .fillMaxHeight()
-                    .clickable { onSelect(t) },
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(bg)
+                    .clickable { onSelect(t) }
+                    .padding(top = 7.dp, bottom = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
             ) {
-                Box(
-                    Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(if (sel) Color.White else Color.Transparent)
-                        .padding(horizontal = 18.dp, vertical = 4.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(tabIcon(t), t.title, tint = if (sel) Palette.Ink else Palette.TextDim, modifier = Modifier.size(20.dp))
-                }
-                Spacer(Modifier.height(4.dp))
+                Icon(tabIcon(t), t.title, tint = tint, modifier = Modifier.size(21.dp))
+                Spacer(Modifier.height(3.dp))
                 Text(
                     t.title,
-                    color = if (sel) Color.White else Palette.TextDim,
-                    fontSize = 11.sp,
+                    color = tint,
+                    fontSize = 10.sp,
                     fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
                     maxLines = 1,
+                    softWrap = false,
                 )
             }
         }
