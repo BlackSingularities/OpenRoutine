@@ -90,7 +90,7 @@ pub struct LogEntry {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
-    #[serde(default = "yes")]
+    #[serde(default)]
     pub autostart: bool,
     #[serde(default = "yes")]
     pub close_to_tray: bool,

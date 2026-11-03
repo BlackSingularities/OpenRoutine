@@ -1,5 +1,11 @@
 # Zmiany
 
+## 1.3.1
+
+- Windows: autostart jest teraz domyślnie wyłączony – aplikacja nie dopisuje się sama do rejestru przy pierwszym uruchomieniu; włączysz go w Ustawieniach.
+- Windows: instalator nie zamyka już siłowo procesów (`taskkill /F`) – działającą aplikację zamyka standardowe okno instalatora. Mniej fałszywych alarmów Microsoft Defender („Program modyfikujący ustawienia”).
+- Windows: nowa ikona aplikacji.
+
 ## 1.3.0
 
 - Windows: nowy ekran **Przegląd** – powitanie, liczniki dnia, najbliższe uruchomienia, ostatnie zdarzenia, szybkie uruchamianie rutyn ręcznych i ze skrótem, lista obserwowanych zdarzeń i rutyn do uzupełnienia.

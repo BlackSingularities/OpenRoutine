@@ -316,11 +316,8 @@ pub fn run() {
             let e = Engine::start(app.handle().clone(), dir);
             {
                 let mut d = e.data.lock().unwrap();
-                if !d.settings.onboarded && !sys::autostart_enabled() && d.settings.autostart {
-                    sys::set_autostart(true);
-                } else if d.settings.autostart != sys::autostart_enabled() {
-                    d.settings.autostart = sys::autostart_enabled();
-                }
+                // Autostart włącza wyłącznie użytkownik w Ustawieniach; tu tylko synchronizacja z rejestrem.
+                d.settings.autostart = sys::autostart_enabled();
             }
             hotkeys::start();
             webhook::restart();
