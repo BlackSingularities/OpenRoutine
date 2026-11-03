@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Coffee
@@ -166,6 +167,7 @@ fun MoreScreen(vm: AppViewModel) {
                 Text("Pomysł i wykonanie: $AUTHOR", color = Color.White, fontSize = 13.sp)
             }
             ActionRow(Icons.Rounded.Language, "redzikowski.com") { uri.openUri(AUTHOR_URL) }
+            ActionRow(Icons.Rounded.Email, "kontakt@redzikowski.com") { uri.openUri("mailto:kontakt@redzikowski.com") }
             ActionRow(Icons.Rounded.Coffee, "Postaw kawę", "Wesprzyj rozwój na buycoffee.to") { uri.openUri(COFFEE_URL) }
         }
 
