@@ -7,11 +7,40 @@
   import { KIND_TITLE, BUILTIN_VARS, SPEC, type Kind } from "../lib/catalog";
   import { api, block, newId, type Block, type Routine } from "../lib/api";
   import { S, saveRoutine, duplicate, removeRoutine, toast, fmtAgo } from "../lib/store.svelte";
+  import { nextRun, fmtNext, routineIssues } from "../lib/schedule";
 
   let { routine: r }: { routine: Routine } = $props();
   let picker = $state<Kind | null>(null);
   let open = $state<Record<string, boolean>>({});
-  let confirmDel = $state(false);
+  let results = $state<Record<string, boolean>>({});
+  let testing = $state(false);
+  let drag = $state<{ key: string; i: number } | null>(null);
+  const loc = $derived<[number, number]>([S.data.settings.latitude ?? 52.23, S.data.settings.longitude ?? 21.01]);
+  const next = $derived(nextRun(r, loc));
+  const issues = $derived(routineIssues(r));
+
+  async function testConds() {
+    testing = true;
+    saveRoutine(r, true);
+    await new Promise((res) => setTimeout(res, 200));
+    const res = await api.testConditions(r.id);
+    results = Object.fromEntries(r.conditions.map((c, i) => [c.id, res[i]]));
+    testing = false;
+    const all = r.matchAll ? res.every(Boolean) : res.some(Boolean);
+    toast(all ? "Warunki są teraz spełnione – rutyna by się wykonała." : "Warunki nie są teraz spełnione.", all ? "ok" : "info");
+    setTimeout(() => (results = {}), 15000);
+  }
+  function dropAt(key: "triggers" | "conditions" | "actions", to: number) {
+    if (!drag || drag.key !== key || drag.i === to) return (drag = null);
+    const a = r[key];
+    const [it] = a.splice(drag.i, 1);
+    a.splice(to, 0, it);
+    drag = null;
+    changed();
+  }
+  function setAll(v: boolean) {
+    for (const b of [...r.triggers, ...r.conditions, ...r.actions]) open[b.id] = v;
+  }
   let showVars = $state(false);
 
   const lists: { kind: Kind; key: "triggers" | "conditions" | "actions" }[] = [
@@ -77,16 +106,14 @@
     <button class="btn ghost sm icon" data-tip="Powiel rutynę" onclick={() => duplicate(r)}><Icon name="copy" size={14} /></button>
     <button class="btn ghost sm icon" data-tip="Eksportuj do pliku" onclick={exportOne}><Icon name="upload" size={14} /></button>
     <button class="btn ghost sm icon" data-tip="Skopiuj polecenie wiersza poleceń" onclick={cliLine}><Icon name="terminal" size={14} /></button>
-    {#if confirmDel}
-      <button class="btn sm danger" onclick={() => removeRoutine(r.id)}>Usuń na pewno</button>
-      <button class="btn ghost sm" onclick={() => (confirmDel = false)}>Anuluj</button>
-    {:else}
-      <button class="btn ghost sm icon" data-tip="Usuń rutynę" onclick={() => (confirmDel = true)}><Icon name="trash" size={14} /></button>
-    {/if}
+    <button class="btn ghost sm icon" data-tip="Usuń rutynę (Delete, można cofnąć)" onclick={() => removeRoutine(r.id)}><Icon name="trash" size={14} /></button>
   </div>
   <div class="meta">
     <span>Uruchomień: <b>{r.runs}</b></span>
     <span>Ostatnio: <b>{fmtAgo(r.lastRun)}</b>{#if r.lastRun && !r.lastOk}<span class="chip err">błąd</span>{/if}</span>
+    {#if next}<span>Następnie: <b>{fmtNext(next)}</b></span>{/if}
+    {#if issues}<span class="iss"><Icon name="info" size={12} />{r.actions.length ? `${issues} do uzupełnienia` : "brak akcji"}</span>{/if}
+    <button class="lnk" onclick={() => setAll(true)}>rozwiń</button><button class="lnk" onclick={() => setAll(false)}>zwiń</button>
     <label class="grp"><Icon name="template" size={12} /><input type="text" list="dl-groups" placeholder="Grupa" bind:value={r.group} oninput={changed} /></label>
     <datalist id="dl-groups">{#each groups as g}<option value={g}></option>{/each}</datalist>
   </div>
@@ -104,11 +131,14 @@
             </div>
           {/if}
           <div class="grow"></div>
+          {#if l.kind === "condition" && r.conditions.length}
+            <button class="btn ghost sm" disabled={testing} data-tip="Sprawdza każdy warunek w tej chwili" onclick={testConds}><Icon name="flask" size={13} />{testing ? "Sprawdzam…" : "Sprawdź teraz"}</button>
+          {/if}
           <button class="btn sm" onclick={() => (picker = l.kind)}><Icon name="plus" size={13} />Dodaj</button>
         </header>
         <div class="blocks">
           {#each r[l.key] as b, i (b.id)}
-            <BlockCard bind:block={r[l.key][i]} index={i} count={r[l.key].length} selfId={r.id} bind:expanded={open[b.id]} onchange={changed} onremove={() => remove(l.key, i)} onmove={(d) => move(l.key, i, d)} onduplicate={() => dup(l.key, i)} />
+            <BlockCard bind:block={r[l.key][i]} index={i} count={r[l.key].length} selfId={r.id} bind:expanded={open[b.id]} onchange={changed} onremove={() => remove(l.key, i)} onmove={(d) => move(l.key, i, d)} onduplicate={() => dup(l.key, i)} result={results[b.id] ?? null} ondragstart={() => (drag = { key: l.key, i })} ondrop={() => dropAt(l.key, i)} />
           {:else}
             <button class="placeholder" onclick={() => (picker = l.kind)}>
               <Icon name="plus" size={14} />
@@ -183,9 +213,24 @@
   .grow {
     flex: 1;
   }
-  .danger {
-    color: var(--err);
-    border-color: var(--err);
+  .iss {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--warn);
+  }
+  .lnk {
+    border: 0;
+    background: none;
+    padding: 0;
+    color: var(--text-3);
+    cursor: pointer;
+    font-size: 11px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .lnk:hover {
+    color: var(--text);
   }
   .meta {
     display: flex;

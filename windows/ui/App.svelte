@@ -9,15 +9,20 @@
   import VarsView from "./components/VarsView.svelte";
   import StateView from "./components/StateView.svelte";
   import SettingsView from "./components/SettingsView.svelte";
-  import { S, init, saveSettings, type Tab } from "./lib/store.svelte";
+  import Overview from "./components/Overview.svelte";
+  import Palette from "./components/Palette.svelte";
+  import Dialogs from "./components/Dialogs.svelte";
+  import { api } from "./lib/api";
+  import { S, init, saveSettings, addRoutine, duplicate, removeRoutine, setEnabled, dismissToast, type Tab } from "./lib/store.svelte";
   import { upd, startUpdateChecks, openUpdate } from "./lib/updates.svelte";
 
   const TABS: { id: Tab; icon: string; label: string }[] = [
+    { id: "overview", icon: "gauge", label: "Przegląd" },
     { id: "routines", icon: "routine", label: "Rutyny" },
     { id: "templates", icon: "template", label: "Szablony" },
     { id: "log", icon: "list", label: "Dziennik" },
     { id: "vars", icon: "variable", label: "Zmienne" },
-    { id: "state", icon: "gauge", label: "Stan" },
+    { id: "state", icon: "cpu", label: "Stan" },
     { id: "settings", icon: "gear", label: "Ustawienia" },
   ];
 
@@ -29,14 +34,47 @@
   onMount(() => {
     init().then(() => startUpdateChecks(() => S.data.settings.checkUpdates));
     const k = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === "n" && !e.shiftKey) {
+      const typing = (e.target as HTMLElement)?.closest("input, textarea, select");
+      const r = S.tab === "routines" ? S.data.routines.find((x) => x.id === S.selected) : undefined;
+      const ctrl = e.ctrlKey && !e.altKey;
+      if (ctrl && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        S.tab = "routines";
-        document.querySelector<HTMLButtonElement>(".rl .btn.primary")?.click();
-      }
-      if (e.ctrlKey && e.key === "f") {
+        S.palette = !S.palette;
+      } else if (ctrl && e.key.toLowerCase() === "n" && !e.shiftKey) {
+        e.preventDefault();
+        addRoutine({ name: "Nowa rutyna", triggers: [], actions: [] });
+      } else if (ctrl && e.key.toLowerCase() === "f") {
         e.preventDefault();
         document.querySelector<HTMLInputElement>(".search input")?.focus();
+      } else if (ctrl && /^[1-7]$/.test(e.key)) {
+        e.preventDefault();
+        S.tab = TABS[+e.key - 1].id;
+      } else if (ctrl && e.key === ",") {
+        e.preventDefault();
+        S.tab = "settings";
+      } else if (ctrl && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        toggleEngine();
+      } else if (e.key === "F1") {
+        e.preventDefault();
+        S.help = !S.help;
+      } else if (r && ctrl && e.key === "Enter") {
+        e.preventDefault();
+        api.run(r.id, false);
+      } else if (r && ctrl && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        duplicate(r);
+      } else if (r && ctrl && e.key.toLowerCase() === "e") {
+        e.preventDefault();
+        setEnabled(r, !r.enabled);
+      } else if (r && !typing && e.key === "Delete") {
+        removeRoutine(r.id);
+      } else if (S.tab === "routines" && !typing && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+        const ids = [...document.querySelectorAll<HTMLElement>(".rl .it[data-id]")].map((x) => x.dataset.id!);
+        if (!ids.length) return;
+        e.preventDefault();
+        const i = ids.indexOf(S.selected);
+        S.selected = ids[Math.max(0, Math.min(ids.length - 1, i + (e.key === "ArrowDown" ? 1 : -1)))] ?? ids[0];
       }
     };
     window.addEventListener("keydown", k);
@@ -54,10 +92,13 @@
 </script>
 
 <Tooltip />
+<Dialogs />
+{#if S.palette}<Palette />{/if}
 
-<div class="shell">
+<div class="shell" class:roomy={S.data.settings.density === "comfortable"}>
   <nav class="rail">
     <img src="/icon.png" alt="OpenRoutine" class="logo" />
+    <button class="pk" data-tip="Szukaj i polecenia (Ctrl+K)" onclick={() => (S.palette = true)}><span class="ti"><Icon name="search" size={16} /></span>Szukaj</button>
     {#each TABS as t}
       <button class:on={S.tab === t.id} onclick={() => (S.tab = t.id)}>
         <span class="ti"><Icon name={t.icon} size={17} /></span>
@@ -75,6 +116,8 @@
   <main>
     {#if !S.ready}
       <div class="empty">Uruchamianie…</div>
+    {:else if S.tab === "overview"}
+      <Overview />
     {:else if S.tab === "routines"}
       <div class="split">
         <aside><RoutineList /></aside>
@@ -90,7 +133,7 @@
                 <button class="btn primary" onclick={() => document.querySelector<HTMLButtonElement>(".rl .btn.primary")?.click()}><Icon name="plus" size={14} />Nowa rutyna</button>
                 <button class="btn" onclick={() => (S.tab = "templates")}><Icon name="template" size={14} />Szablony</button>
               </div>
-              <p class="muted small">Ctrl+N – nowa rutyna · Ctrl+F – szukaj · okno można zamknąć, rutyny działają w zasobniku.</p>
+              <p class="muted small">Ctrl+K – paleta poleceń · Ctrl+N – nowa rutyna · F1 – skróty · okno można zamknąć, rutyny działają w zasobniku.</p>
             </div>
           {/if}
         </section>
@@ -125,7 +168,13 @@
 </div>
 
 <div class="toasts">
-  {#each S.toasts as t (t.id)}<div class="toast {t.kind}"><Icon name={t.kind === "error" ? "alert" : t.kind === "ok" ? "ok" : "info"} size={14} />{t.text}</div>{/each}
+  {#each S.toasts as t (t.id)}
+    <div class="toast {t.kind}">
+      <Icon name={t.kind === "error" ? "alert" : t.kind === "ok" ? "ok" : "info"} size={14} /><span>{t.text}</span>
+      {#if t.action}<button class="btn sm" onclick={() => { t.action!.run(); dismissToast(t.id); }}>{t.action.label}</button>{/if}
+      <button class="x" aria-label="Zamknij" onclick={() => dismissToast(t.id)}><Icon name="x" size={12} /></button>
+    </div>
+  {/each}
 </div>
 
 <style>
@@ -320,6 +369,29 @@
     box-shadow: var(--shadow);
     font-size: 12px;
     animation: tin 0.16s ease-out;
+  }
+  .toast span {
+    flex: 1;
+  }
+  .toast .x {
+    border: 0;
+    background: none;
+    color: var(--text-3);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+  }
+  .rail .pk {
+    margin-bottom: 6px;
+    border: 1px solid var(--line);
+  }
+  .shell.roomy :global(.it),
+  .shell.roomy :global(.card .head) {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+  .shell.roomy {
+    font-size: 13px;
   }
   .toast.error {
     border-color: var(--err);

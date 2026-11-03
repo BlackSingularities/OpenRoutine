@@ -3,6 +3,14 @@
   import { SPEC, summary } from "../lib/catalog";
   import { api, type Routine } from "../lib/api";
   import { S, addRoutine, fmtAgo } from "../lib/store.svelte";
+  import { nextRun, fmtNext, routineIssues } from "../lib/schedule";
+
+  let tick = $state(Date.now());
+  $effect(() => {
+    const t = setInterval(() => (tick = Date.now()), 30000);
+    return () => clearInterval(t);
+  });
+  const loc = $derived<[number, number]>([S.data.settings.latitude ?? 52.23, S.data.settings.longitude ?? 21.01]);
 
   let q = $state("");
   let filter = $state<"all" | "on" | "off" | "err">("all");
@@ -69,7 +77,8 @@
       {#each rs as r (r.id)}
         <div
           class="it" class:sel={S.selected === r.id} class:off={!r.enabled} class:drag={dragId === r.id}
-          role="button" tabindex="0" draggable="true"
+          role="button" tabindex="0" draggable="true" data-id={r.id}
+          oncontextmenu={(e) => { e.preventDefault(); S.ctx = { x: e.clientX, y: e.clientY, id: r.id }; }}
           ondragstart={() => (dragId = r.id)} ondragover={(e) => e.preventDefault()} ondrop={() => drop(r.id)} ondragend={() => (dragId = "")}
           onclick={() => (S.selected = r.id)} onkeydown={(e) => e.key === "Enter" && (S.selected = r.id)}
         >
@@ -80,9 +89,14 @@
           </div>
           <div class="right">
             {#if S.running.includes(r.id)}<span class="spin" data-tip="Trwa wykonywanie"></span>
-            {:else if r.lastRun && !r.lastOk}<span class="err" data-tip="Ostatnie uruchomienie z błędem"><Icon name="alert" size={13} /></span>{/if}
-            <span class="ago">{r.lastRun ? fmtAgo(r.lastRun) : ""}</span>
-            <button class="btn ghost sm icon run" data-tip="Uruchom" onclick={(e) => { e.stopPropagation(); api.run(r.id, false); }}><Icon name="play" size={12} /></button>
+            {:else if r.lastRun && !r.lastOk}<span class="err" data-tip="Ostatnie uruchomienie z błędem"><Icon name="alert" size={13} /></span>
+            {:else if r.enabled && routineIssues(r)}<span class="warn" data-tip="Rutyna wymaga uzupełnienia"><Icon name="info" size={13} /></span>{/if}
+            {#if r.enabled && nextRun(r, loc, new Date(tick))}
+              <span class="ago next" data-tip="Najbliższe uruchomienie">{fmtNext(nextRun(r, loc, new Date(tick))!, tick)}</span>
+            {:else}
+              <span class="ago">{r.lastRun ? fmtAgo(r.lastRun) : ""}</span>
+            {/if}
+            <button class="btn ghost sm icon run" data-tip="Uruchom (Ctrl+Enter)" onclick={(e) => { e.stopPropagation(); api.run(r.id, false); }}><Icon name="play" size={12} /></button>
           </div>
         </div>
       {/each}
@@ -233,6 +247,13 @@
   .err {
     color: var(--err);
     display: flex;
+  }
+  .warn {
+    color: var(--warn);
+    display: flex;
+  }
+  .ago.next {
+    color: var(--text-2);
   }
   .spin {
     width: 12px;

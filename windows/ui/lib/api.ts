@@ -43,6 +43,9 @@ export interface Settings {
   skippedVersion: string;
   onboarded: boolean;
   density: string;
+  latitude: number;
+  longitude: number;
+  city: string;
 }
 
 export interface LogEntry {
@@ -127,4 +130,7 @@ export const api = {
   preview: (text: string) => invoke<string>("preview_text", { text }),
   fireEvent: (name: string, extra: string) => invoke("fire_event", { name, extra }),
   quit: () => invoke("quit_app"),
+  testConditions: (id: string) => invoke<boolean[]>("test_conditions", { id }),
+  sunInfo: () => invoke<[string, string] | null>("sun_info"),
+  checkHost: (host: string) => invoke<boolean>("check_host", { host }),
 };

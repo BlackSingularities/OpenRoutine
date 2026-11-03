@@ -12,6 +12,26 @@
   const THEME_NAMES: Record<string, string> = { dark: "Czarny", light: "Biały", gray: "Grafit", classic: "Klasyczny", custom: "Własny" };
   const base = $derived(`http://127.0.0.1:${st.webhookPort}`);
   let showToken = $state(false);
+  const CITIES: [string, number, number][] = [
+    ["Warszawa", 52.2297, 21.0122], ["Kraków", 50.0647, 19.945], ["Łódź", 51.7592, 19.456], ["Wrocław", 51.1079, 17.0385], ["Poznań", 52.4064, 16.9252],
+    ["Gdańsk", 54.352, 18.6466], ["Szczecin", 53.4285, 14.5528], ["Bydgoszcz", 53.1235, 18.0084], ["Lublin", 51.2465, 22.5684], ["Białystok", 53.1325, 23.1688],
+    ["Katowice", 50.2649, 19.0238], ["Rzeszów", 50.0412, 21.9991], ["Olsztyn", 53.7784, 20.4801], ["Kielce", 50.8661, 20.6286], ["Opole", 50.6751, 17.9213],
+    ["Zielona Góra", 51.9356, 15.5062], ["Gorzów Wlkp.", 52.7368, 15.2288], ["Toruń", 53.0138, 18.5984], ["Londyn", 51.5072, -0.1276], ["Berlin", 52.52, 13.405],
+  ];
+  let sun = $state<[string, string] | null>(null);
+  $effect(() => {
+    st.latitude;
+    st.longitude;
+    api.sunInfo().then((v) => (sun = v)).catch(() => {});
+  });
+  function setCity(name: string) {
+    const c = CITIES.find((x) => x[0] === name);
+    if (!c) return;
+    S.data.settings.city = c[0];
+    S.data.settings.latitude = c[1];
+    S.data.settings.longitude = c[2];
+    saveSettings();
+  }
 
   function set<K extends keyof typeof st>(k: K, v: (typeof st)[K]) {
     (S.data.settings as any)[k] = v;
@@ -73,6 +93,26 @@
       {#if st.theme === "custom"}
         <label class="f row"><span>Kolor tła</span><input type="color" value={st.customColor || "#1e2a44"} oninput={(e) => set("customColor", e.currentTarget.value)} /></label>
       {/if}
+
+      <label class="f row"><span>Gęstość interfejsu</span>
+        <div class="seg">
+          <button class:on={st.density !== "comfortable"} onclick={() => set("density", "compact")}>Kompaktowa</button>
+          <button class:on={st.density === "comfortable"} onclick={() => set("density", "comfortable")}>Wygodna</button>
+        </div>
+      </label>
+
+      <h3><Icon name="sun" size={14} />Lokalizacja (słońce)</h3>
+      <div class="two3">
+        <label class="f"><span>Miasto</span>
+          <select value={st.city || ""} onchange={(e) => setCity(e.currentTarget.value)}>
+            <option value="">Własne współrzędne</option>
+            {#each CITIES as c}<option value={c[0]}>{c[0]}</option>{/each}
+          </select>
+        </label>
+        <label class="f"><span>Szerokość</span><input type="number" step="0.0001" value={st.latitude} onchange={(e) => { S.data.settings.city = ""; set("latitude", +e.currentTarget.value); }} /></label>
+        <label class="f"><span>Długość</span><input type="number" step="0.0001" value={st.longitude} onchange={(e) => { S.data.settings.city = ""; set("longitude", +e.currentTarget.value); }} /></label>
+      </div>
+      {#if sun}<p class="note">Dziś wschód {sun[0]}, zachód {sun[1]} – używane przez wyzwalacz „Wschód / zachód słońca” i warunek „Dzień / noc”.</p>{/if}
 
       <h3><Icon name="upload" size={14} />Kopia i przenoszenie</h3>
       <div class="btns">
@@ -178,6 +218,18 @@
     display: grid;
     grid-template-columns: 90px 1fr;
     gap: 8px;
+  }
+  .two3 {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr;
+    gap: 8px;
+  }
+  .two3 select {
+    width: 100%;
+  }
+  .seg button {
+    height: 22px;
+    font-size: 11.5px;
   }
   .tok {
     display: flex;

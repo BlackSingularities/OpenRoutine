@@ -32,10 +32,11 @@
         {#each list.filter((p) => p.group === g) as p (p.title)}
           <div class="card">
             <div class="ics">{#each icons(p) as i}<span><Icon name={i} size={13} /></span>{/each}</div>
-            <b>{p.title}</b>
+            <button class="ttl" onclick={() => (S.preview = p)}>{p.title}</button>
             <p>{p.desc}</p>
             <div class="foot">
               <span class="muted small">{p.r.triggers.length} wyzw. · {p.r.conditions?.length ?? 0} war. · {p.r.actions.length} akcji</span>
+              <button class="btn ghost sm" onclick={() => (S.preview = p)}><Icon name="eye" size={12} />Podgląd</button>
               <button class="btn sm" class:primary={!used.has(p.title)} onclick={() => use(p)}><Icon name={used.has(p.title) ? "copy" : "plus"} size={12} />{used.has(p.title) ? "Dodaj ponownie" : "Dodaj"}</button>
             </div>
           </div>
@@ -141,8 +142,24 @@
     background: var(--sel-bg);
     color: var(--sel-fg);
   }
-  .card b {
+  .ttl {
+    border: 0;
+    background: none;
+    padding: 0;
+    text-align: left;
+    font-weight: 700;
     font-size: 13px;
+    cursor: pointer;
+  }
+  .ttl:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .foot span {
+    flex: 1;
+  }
+  .foot {
+    gap: 4px;
   }
   .card p {
     margin: 0;

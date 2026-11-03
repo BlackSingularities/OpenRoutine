@@ -3,26 +3,33 @@ import { listen } from "@tauri-apps/api/event";
 import { api, makeRoutine, type Data, type Routine, type Snap, type RoutineDraft } from "./api";
 import { applyTheme, type ThemeId } from "./theme";
 
-export type Tab = "routines" | "templates" | "log" | "vars" | "state" | "settings";
+export type Tab = "overview" | "routines" | "templates" | "log" | "vars" | "state" | "settings";
 
 export const S = $state({
   ready: false,
   data: { routines: [], vars: {}, settings: {} as any, log: [] } as Data,
   snap: null as Snap | null,
   running: [] as string[],
-  tab: "routines" as Tab,
+  tab: "overview" as Tab,
+  palette: false,
+  help: false,
+  preview: null as null | import("./presets").Preset,
+  ctx: null as null | { x: number; y: number; id: string },
   selected: "" as string,
-  toasts: [] as { id: number; text: string; kind: "ok" | "error" | "info" }[],
+  toasts: [] as { id: number; text: string; kind: "ok" | "error" | "info"; action?: { label: string; run: () => void } }[],
   processes: [] as string[],
   windows: [] as string[],
   failedHotkeys: [] as string[],
 });
 
 let toastId = 0;
-export function toast(text: string, kind: "ok" | "error" | "info" = "info") {
+export function toast(text: string, kind: "ok" | "error" | "info" = "info", action?: { label: string; run: () => void }) {
   const id = ++toastId;
-  S.toasts.push({ id, text, kind });
-  setTimeout(() => (S.toasts = S.toasts.filter((t) => t.id !== id)), kind === "error" ? 6000 : 3200);
+  S.toasts.push({ id, text, kind, action });
+  setTimeout(() => dismissToast(id), action ? 7000 : kind === "error" ? 6000 : 3200);
+}
+export function dismissToast(id: number) {
+  S.toasts = S.toasts.filter((t) => t.id !== id);
 }
 
 // Edytowana kopia jest lokalna; do silnika trafia z opóźnieniem, żeby pisanie było płynne.
@@ -73,9 +80,34 @@ export function duplicate(r: Routine) {
 }
 
 export async function removeRoutine(id: string) {
-  S.data.routines = S.data.routines.filter((r) => r.id !== id);
+  const r = S.data.routines.find((x) => x.id === id);
+  if (!r) return;
+  const copy = $state.snapshot(r) as Routine;
+  const pos = S.data.routines.indexOf(r);
+  S.data.routines = S.data.routines.filter((x) => x.id !== id);
   if (S.selected === id) S.selected = "";
   await api.deleteRoutine(id);
+  toast(`Usunięto „${copy.name}”.`, "info", {
+    label: "Cofnij",
+    run: async () => {
+      await api.saveRoutine(copy);
+      const ids = S.data.routines.map((x) => x.id);
+      ids.splice(pos, 0, copy.id);
+      await api.reorder(ids);
+      await refresh();
+      S.selected = copy.id;
+    },
+  });
+}
+
+export async function setEnabled(r: Routine, on: boolean) {
+  r.enabled = on;
+  await api.setEnabled(r.id, on);
+}
+
+export function openRoutine(id: string) {
+  S.selected = id;
+  S.tab = "routines";
 }
 
 export async function saveSettings() {

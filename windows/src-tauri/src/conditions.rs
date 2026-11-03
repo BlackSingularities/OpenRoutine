@@ -131,6 +131,27 @@ pub fn check(c: &Block, local: &HashMap<String, String>, r: &Routine) -> bool {
                 .unwrap_or(false);
             yes(c, "state", "yes") == ok
         }
+        "c.sun" => {
+            let (lat, lon) = engine::location();
+            let Some((rise, set)) = crate::probe::sun_today(lat, lon) else { return false };
+            let day = min_now >= rise && min_now < set;
+            (c.pd("state", "day") == "day") == day
+        }
+        "c.monthday" => {
+            let last = {
+                let (y, m) = (now.year(), now.month());
+                let nm = if m == 12 { chrono::NaiveDate::from_ymd_opt(y + 1, 1, 1) } else { chrono::NaiveDate::from_ymd_opt(y, m + 1, 1) };
+                nm.and_then(|d| d.pred_opt()).map(|d| d.day()).unwrap_or(28)
+            };
+            let d = now.day();
+            c.p("days").split([',', ' ', ';']).map(|x| x.trim()).any(|x| x == d.to_string() || (x == "last" && d == last) || (x == "ostatni" && d == last))
+        }
+        "c.clipboard" => {
+            let text = sys::clipboard_get();
+            let f = c.p("text");
+            let hit = if c.pd("match", "contains") == "regex" { regex::Regex::new(f).map(|r| r.is_match(&text)).unwrap_or(false) } else { text.to_lowercase().contains(&f.to_lowercase()) };
+            yes(c, "state", "yes") == hit
+        }
         "c.window" => {
             let t = c.p("title").to_lowercase();
             let hit = sys::windows_list().iter().any(|(x, _)| x.to_lowercase().contains(&t));

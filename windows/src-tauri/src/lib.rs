@@ -5,6 +5,7 @@ mod conditions;
 mod engine;
 mod hotkeys;
 mod model;
+mod probe;
 mod sys;
 mod vars;
 mod webhook;
@@ -264,6 +265,28 @@ fn fire_event(name: String, extra: String) {
     engine::get().fire(Event::new("t.event").with("event", name).with("extra", extra).with("source", "app"));
 }
 
+/// Wynik każdego warunku rutyny w tej chwili (do podglądu w edytorze).
+#[tauri::command]
+fn test_conditions(id: String) -> Vec<bool> {
+    let r = engine::get().data.lock().unwrap().routines.iter().find(|r| r.id == id).cloned();
+    match r {
+        Some(r) => r.conditions.iter().map(|c| c.off || conditions::check(c, &Default::default(), &r)).collect(),
+        None => Vec::new(),
+    }
+}
+
+/// Dzisiejszy wschód i zachód słońca dla ustawionej lokalizacji.
+#[tauri::command]
+fn sun_info() -> Option<(String, String)> {
+    let (lat, lon) = engine::location();
+    probe::sun_today(lat, lon).map(|(a, b)| (engine::fmt_hm(a), engine::fmt_hm(b)))
+}
+
+#[tauri::command]
+async fn check_host(host: String) -> bool {
+    tauri::async_runtime::spawn_blocking(move || probe::reachable_now(&host, 2000)).await.unwrap_or(false)
+}
+
 #[tauri::command]
 fn quit_app(app: AppHandle) {
     engine::get().save_now();
@@ -283,6 +306,11 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(tauri_plugin_window_state::StateFlags::all() & !tauri_plugin_window_state::StateFlags::VISIBLE)
+                .build(),
+        )
         .setup(move |app| {
             let dir = app.path().app_data_dir().unwrap_or_else(|_| std::env::temp_dir().join("OpenRoutine"));
             let e = Engine::start(app.handle().clone(), dir);
@@ -376,6 +404,9 @@ pub fn run() {
             preview_text,
             autostart_state,
             fire_event,
+            test_conditions,
+            sun_info,
+            check_host,
             quit_app,
         ])
         .run(tauri::generate_context!())

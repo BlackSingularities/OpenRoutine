@@ -665,8 +665,49 @@ fn eval_trigger(t: &Block, cur: &Snap, p: &Snap, m: &mut Mem, now: &chrono::Date
             ok.then(|| ev.with("clipboard", text))
         }
         "t.file" => file_trigger(t, m, ev, ts),
+        "t.sun" => {
+            let (lat, lon) = location();
+            let (rise, set) = crate::probe::sun_today(lat, lon)?;
+            let base = if t.pd("event", "sunset") == "sunrise" { rise } else { set } as i64;
+            let at = (base + t.num("offset", 0.0) as i64).rem_euclid(1440) as u32;
+            let key = now.format("%Y%m%d").to_string();
+            if at == min_now && vars::day_ok(t.p("days"), wd) && m.key != key {
+                m.key = key;
+                return Some(ev.with("sunrise", fmt_hm(rise)).with("sunset", fmt_hm(set)));
+            }
+            None
+        }
+        "t.host" => {
+            let up = crate::probe::host(t.p("host"), t.num("every", 30.0) as u64)?;
+            let prev = m.flag;
+            let known = m.key == "known";
+            m.flag = up;
+            m.key = "known".into();
+            if !known || prev == up {
+                return None;
+            }
+            ((t.pd("state", "down") == "up") == up).then(|| ev.with("host", t.p("host").to_string()))
+        }
+        "t.web_change" => {
+            let v = crate::probe::page(t.p("url"), t.p("json"), (t.num("minutes", 15.0) * 60.0) as u64)?;
+            let old = std::mem::replace(&mut m.key, v.clone());
+            if old.is_empty() || old == v {
+                return None;
+            }
+            let short = |s: &str| s.chars().take(2000).collect::<String>();
+            Some(ev.with("value", short(&v)).with("old_value", short(&old)))
+        }
         _ => None,
     }
+}
+
+pub fn location() -> (f64, f64) {
+    let d = get().data.lock().unwrap();
+    (d.settings.latitude, d.settings.longitude)
+}
+
+pub fn fmt_hm(m: u32) -> String {
+    format!("{:02}:{:02}", m / 60, m % 60)
 }
 
 fn scan(dir: &Path, pattern: &str, recursive: bool, out: &mut HashMap<PathBuf, (u64, u64)>, depth: usize) {
@@ -789,6 +830,9 @@ pub fn trigger_label(kind: &str) -> &'static str {
         "t.event" => "zdarzenie zewnętrzne",
         "t.routine_done" => "inna rutyna",
         "t.var_change" => "zmiana zmiennej",
+        "t.sun" => "słońce",
+        "t.host" => "dostępność hosta",
+        "t.web_change" => "zmiana strony",
         _ => "zdarzenie",
     }
 }

@@ -3,22 +3,31 @@
   import ParamField from "./ParamField.svelte";
   import { SPEC, summary } from "../lib/catalog";
   import type { Block } from "../lib/api";
+  import { missing } from "../lib/schedule";
 
   let {
-    block = $bindable(), index, count, selfId, onchange, onremove, onmove, onduplicate, expanded = $bindable(false),
+    block = $bindable(), index, count, selfId, onchange, onremove, onmove, onduplicate, expanded = $bindable(false), result = null, ondragstart, ondrop,
   }: {
     block: Block; index: number; count: number; selfId: string; onchange: () => void; onremove: () => void; onmove: (d: number) => void; onduplicate: () => void; expanded?: boolean;
+    result?: boolean | null; ondragstart?: () => void; ondrop?: () => void;
   } = $props();
+  const lacks = $derived(block.off ? [] : missing(block));
+  let over = $state(false);
 
   const spec = $derived(SPEC[block.type]);
   const text = $derived(summary(block));
 </script>
 
-<div class="card" class:off={block.off} class:open={expanded}>
+<div class="card" class:off={block.off} class:open={expanded} class:over role="listitem"
+  ondragover={(e) => { if (ondrop) { e.preventDefault(); over = true; } }} ondragleave={() => (over = false)} ondrop={(e) => { e.preventDefault(); over = false; ondrop?.(); }}>
   <div class="head" role="button" tabindex="0" onclick={() => (expanded = !expanded)} onkeydown={(e) => e.key === "Enter" && (expanded = !expanded)}>
+    <span class="grip" role="presentation" draggable="true" ondragstart={(e) => { e.dataTransfer?.setData("text/plain", block.id); ondragstart?.(); }} onclick={(e) => e.stopPropagation()} data-tip="Przeciągnij, aby zmienić kolejność">⋮⋮</span>
     <span class="ic"><Icon name={spec?.icon ?? "info"} size={15} /></span>
     <div class="tx">
-      <b>{spec?.title ?? block.type}</b>
+      <b>{spec?.title ?? block.type}
+        {#if lacks.length}<em class="lack" data-tip={"Uzupełnij: " + lacks.join(", ")}>uzupełnij</em>{/if}
+        {#if result === true}<em class="res ok" data-tip="Warunek jest teraz spełniony">✓ spełniony</em>{:else if result === false}<em class="res no" data-tip="Warunek nie jest teraz spełniony">✗ niespełniony</em>{/if}
+      </b>
       <span>{text}</span>
     </div>
     <div class="tools" role="presentation" onclick={(e) => e.stopPropagation()}>
@@ -60,11 +69,47 @@
   .card.off {
     opacity: 0.5;
   }
+  .card.over {
+    border-color: var(--sel-bg);
+  }
+  .grip {
+    cursor: grab;
+    color: var(--text-3);
+    font-size: 11px;
+    letter-spacing: -2px;
+    padding: 0 2px;
+    opacity: 0;
+    user-select: none;
+  }
+  .card:hover .grip {
+    opacity: 1;
+  }
+  em {
+    font-style: normal;
+    font-size: 10px;
+    font-weight: 600;
+    margin-left: 6px;
+    padding: 0 6px;
+    border-radius: 999px;
+    vertical-align: 1px;
+  }
+  .lack {
+    color: var(--warn);
+    border: 1px solid var(--warn);
+  }
+  .res.ok {
+    background: var(--sel-bg);
+    color: var(--sel-fg);
+  }
+  .res.no {
+    color: var(--err);
+    border: 1px solid var(--err);
+  }
   .head {
     display: flex;
     align-items: center;
     gap: 9px;
-    padding: 6px 6px 6px 9px;
+    padding: 6px 6px 6px 4px;
     cursor: pointer;
     min-height: 40px;
   }

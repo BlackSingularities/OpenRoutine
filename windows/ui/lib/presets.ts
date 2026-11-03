@@ -37,6 +37,15 @@ export const PRESETS: Preset[] = [
   { group: "Dzień i praca", title: "Notatka dnia", desc: "Ctrl+Alt+J otwiera notatnik z plikiem na dzisiejszy dzień.",
     r: { triggers: [b("t.hotkey", { keys: "ctrl+alt+j" })], actions: [b("a.folder_create", { path: "{documents}\\Notatki" }), b("a.file_write", { path: "{documents}\\Notatki\\{date}.txt", text: "", mode: "append", newline: "0" }), b("a.run", { path: "notepad.exe", args: "\"{documents}\\Notatki\\{date}.txt\"" })] } },
 
+  { group: "Dzień i praca", title: "Wieczór od zachodu słońca", desc: "Pół godziny przed zachodem słońca przełącza na ciemny motyw i ścisza dźwięk.",
+    r: { triggers: [b("t.sun", { event: "sunset", offset: "-30", days: "1234567" })], actions: [b("a.theme", { mode: "dark", scope: "both" }), b("a.volume", { mode: "set", level: "30" })] } },
+  { group: "Dzień i praca", title: "Rano od wschodu słońca", desc: "O wschodzie słońca włącza jasny motyw.",
+    r: { triggers: [b("t.sun", { event: "sunrise", offset: "0", days: "1234567" })], actions: [b("a.theme", { mode: "light", scope: "both" })] } },
+  { group: "Dzień i praca", title: "Pytanie o koniec dnia", desc: "O 18:00 pyta, czy zamknąć programy pracy – przy „Tak” zamyka je i blokuje komputer.",
+    r: { triggers: [b("t.time", { time: "18:00", days: "12345" })], actions: [b("a.confirm", { title: "Koniec pracy?", text: "Zamknąć Teams, Outlook i zablokować komputer?", on_no: "stop" }), b("a.kill", { app: "ms-teams;outlook", force: "0" }), b("a.lock")] } },
+  { group: "Dzień i praca", title: "Szybka notatka", desc: "Ctrl+Alt+N pyta o treść i dopisuje ją z godziną do pliku notatek.",
+    r: { triggers: [b("t.hotkey", { keys: "ctrl+alt+n" })], actions: [b("a.input", { title: "Szybka notatka", text: "Co zapisać?", var: "notatka", scope: "local", stop_if_empty: "1" }), b("a.file_write", { path: "{documents}\\Notatki.txt", text: "[{datetime}] {notatka}", mode: "append", newline: "1" }), b("a.notify", { title: "Zapisano", text: "{notatka}" })] } },
+
   // ---------------------------------------------------------------- Skupienie i zdrowie
   { group: "Skupienie i zdrowie", title: "Przerwa dla oczu (20-20-20)", desc: "Co 20 minut pracy przypomina, by przez 20 s spojrzeć w dal.",
     r: { triggers: [b("t.interval", { minutes: "20", from: "07:00", to: "22:00" })], conditions: [b("c.idle", { op: "lt", minutes: "5" }), b("c.fullscreen", { state: "no" })], actions: [b("a.notify", { title: "Przerwa dla oczu", text: "Spójrz na coś oddalonego o 6 m przez 20 sekund." })] } },
@@ -130,6 +139,11 @@ export const PRESETS: Preset[] = [
   { group: "Sieć i urządzenia", title: "Pendrive podłączony", desc: "Otwiera nowy dysk w Eksploratorze i mówi jego nazwę.",
     r: { triggers: [b("t.drive", { state: "connected", label: "" })], actions: [b("a.open", { target: "{drive}\\" }), b("a.notify", { title: "Dysk {drive}", text: "{drive_label}" })] } },
 
+  { group: "Sieć i urządzenia", title: "Router nie odpowiada", desc: "Gdy domowy router przestanie odpowiadać – powiadomienie; gdy wróci – drugie.",
+    r: { triggers: [b("t.host", { host: "192.168.1.1:80", state: "down", every: "20" })], actions: [b("a.notify", { title: "Router nie odpowiada", text: "{host} – {time}" }), b("a.log", { text: "Router niedostępny {datetime}" })] } },
+  { group: "Sieć i urządzenia", title: "Serwer znów działa", desc: "Informuje, gdy NAS lub serwer znów odpowiada.",
+    r: { triggers: [b("t.host", { host: "192.168.1.10:445", state: "up", every: "30" })], actions: [b("a.notify", { title: "Serwer dostępny", text: "{host} odpowiada od {time}." })] } },
+
   // ---------------------------------------------------------------- Konserwacja systemu
   { group: "Konserwacja systemu", title: "Sprzątanie w niedzielę", desc: "W niedzielę o 20:00 czyści TEMP, opróżnia Kosz i podaje wolne miejsce.",
     r: { triggers: [b("t.time", { time: "20:00", days: "7" }), b("t.manual")], actions: [b("a.clear_temp", { days: "3" }), b("a.recycle"), b("a.powershell", { script: "[math]::Round((Get-PSDrive C).Free/1GB,1)", var: "wolne", scope: "local" }), b("a.notify", { title: "Sprzątanie", text: "Usunięto {files_count} plików tymczasowych. Wolne: {wolne} GB." })] } },
@@ -145,6 +159,11 @@ export const PRESETS: Preset[] = [
     r: { triggers: [b("t.monthday", { day: "1", time: "12:00" }), b("t.manual")], actions: [b("a.powershell", { script: "Get-CimInstance Win32_StartupCommand | Select-Object Name,Command | Format-Table -AutoSize | Out-String -Width 300", var: "", scope: "local" }), b("a.file_write", { path: "{documents}\\Autostart {date}.txt", text: "{output}", mode: "overwrite", newline: "1" })] } },
   { group: "Konserwacja systemu", title: "Tapeta na każdy dzień", desc: "Codziennie losowa tapeta z folderu Obrazy\\Tapety.",
     r: { triggers: [b("t.startup", { delay: "60" }), b("t.time", { time: "08:00", days: "1234567" })], actions: [b("a.wallpaper", { file: "{pictures}\\Tapety" })], cooldownSec: 3600 } },
+
+  { group: "Pliki i kopie", title: "Zdjęcia z datą w nazwie", desc: "Ręcznie: zmienia nazwy JPG w wybranym folderze na „RRRR-MM-DD 001.jpg”.",
+    r: { triggers: [b("t.manual")], actions: [b("a.rename", { folder: "{pictures}\\Import", pattern: "*.jpg;*.jpeg", template: "{mdate} {n}{ext}", digits: "3" }), b("a.notify", { title: "Zmieniono nazwy", text: "{files_count} plików" })] } },
+  { group: "Pliki i kopie", title: "Raport z Pobranych", desc: "W poniedziałek zapisuje listę plików z Pobranych starszych niż 30 dni.",
+    r: { triggers: [b("t.time", { time: "09:00", days: "1" })], actions: [b("a.file_list", { folder: "{downloads}", pattern: "*", older_days: "30", format: "name", var: "stare", scope: "local" }), b("a.stop_if", { name: "files_count", op: "eq", value: "0" }), b("a.notify", { title: "Stare pliki w Pobranych", text: "{files_count} plików starszych niż 30 dni." }), b("a.file_write", { path: "{documents}\\Stare pobrane.txt", text: "{stare}", mode: "overwrite", newline: "1" })] } },
 
   // ---------------------------------------------------------------- Schowek i tekst
   { group: "Schowek i tekst", title: "Historia schowka", desc: "Każdy skopiowany tekst dopisuje do pliku z datą.",
@@ -179,6 +198,10 @@ export const PRESETS: Preset[] = [
     r: { triggers: [b("t.time", { time: "09:00", days: "12345" }), b("t.manual")], actions: [b("a.http", { method: "GET", url: "https://api.nbp.pl/api/exchangerates/rates/a/eur/?format=json", json: "rates.0.mid", var: "eur", scope: "global" }), b("a.notify", { title: "Kurs EUR", text: "1 EUR = {eur} PLN" })] } },
   { group: "Integracje i zaawansowane", title: "Monitor strony WWW", desc: "Co 10 minut sprawdza, czy strona odpowiada kodem 200.",
     r: { triggers: [b("t.interval", { minutes: "10" })], actions: [b("a.http", { method: "GET", url: "https://redzikowski.com", ignore_errors: "1", timeout: "15" }), b("a.stop_if", { name: "http_code", op: "eq", value: "200" }), b("a.notify", { title: "Strona nie działa", text: "Kod {http_code} o {time}" })], cooldownSec: 1800 } },
+  { group: "Integracje i zaawansowane", title: "Obserwuj cenę / kurs", desc: "Co 30 minut sprawdza kurs EUR w API NBP i powiadamia o każdej zmianie.",
+    r: { triggers: [b("t.web_change", { url: "https://api.nbp.pl/api/exchangerates/rates/a/eur/?format=json", json: "rates.0.mid", minutes: "30" })], actions: [b("a.notify", { title: "Kurs EUR się zmienił", text: "{old_value} → {value} PLN" })] } },
+  { group: "Integracje i zaawansowane", title: "Nowa wersja programu", desc: "Raz na godzinę sprawdza najnowsze wydanie na GitHubie i informuje o nowym tagu.",
+    r: { triggers: [b("t.web_change", { url: "https://api.github.com/repos/BlackSingularities/OpenRoutine/releases/latest", json: "tag_name", minutes: "60" })], actions: [b("a.notify", { title: "Nowe wydanie", text: "{value} (poprzednio {old_value})" })] } },
   { group: "Integracje i zaawansowane", title: "Łańcuch rutyn", desc: "Gdy dowolna rutyna zakończy się błędem – zapisuje to w pliku.",
     r: { triggers: [b("t.routine_done", { routine: "", result: "error" })], actions: [b("a.file_write", { path: "{documents}\\Błędy rutyn.txt", text: "{datetime} – {routine}", mode: "append", newline: "1" })] } },
   { group: "Integracje i zaawansowane", title: "Losowy cytat na start", desc: "Po zalogowaniu wybiera motywujący cytat z listy.",

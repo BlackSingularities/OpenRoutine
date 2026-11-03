@@ -380,6 +380,12 @@ pub fn message_box(title: &str, text: &str) {
     }
 }
 
+/// Pytanie Tak/Nie na wierzchu wszystkich okien.
+pub fn confirm(title: &str, text: &str) -> bool {
+    let (t, x) = (HSTRING::from(title), HSTRING::from(text));
+    unsafe { MessageBoxW(None, &x, &t, MB_YESNO | MB_ICONQUESTION | MB_TOPMOST | MB_SETFOREGROUND) == IDYES }
+}
+
 pub fn beep(kind: &str) {
     let s = match kind {
         "error" => MB_ICONHAND,

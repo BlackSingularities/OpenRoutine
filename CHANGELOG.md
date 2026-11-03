@@ -1,5 +1,14 @@
 # Zmiany
 
+## 1.3.0
+
+- Windows: nowy ekran **Przegląd** – powitanie, liczniki dnia, najbliższe uruchomienia, ostatnie zdarzenia, szybkie uruchamianie rutyn ręcznych i ze skrótem, lista obserwowanych zdarzeń i rutyn do uzupełnienia.
+- Windows: **paleta poleceń** (Ctrl+K) do szukania rutyn, szablonów i poleceń oraz komplet skrótów klawiszowych (Ctrl+1…7, Ctrl+Enter, Ctrl+D, Ctrl+E, Delete, strzałki, F1 – ściągawka).
+- Windows: edytor pokazuje najbliższe uruchomienie, oznacza klocki do uzupełnienia, sprawdza warunki „na żywo”, pozwala przeciągać klocki oraz zwijać i rozwijać wszystkie naraz.
+- Windows: menu kontekstowe rutyn, cofanie usunięcia, podgląd szablonu przed dodaniem, gęstość interfejsu (kompaktowa / wygodna), zapamiętywanie położenia i rozmiaru okna.
+- Windows: nowe wyzwalacze – wschód / zachód słońca (z lokalizacją w Ustawieniach), dostępność serwera, zmiana na stronie lub w API; nowe warunki – dzień / noc, dzień miesiąca, zawartość schowka; nowe akcje – pytanie Tak / Nie, pytanie o tekst, lista plików, zmiana nazw plików według szablonu.
+- Windows: 10 nowych szablonów (razem 85).
+
 ## 1.2.0
 
 - **Nowość: OpenRoutine dla Windows** – osobna aplikacja (Tauri + Svelte) w stylu OpenPano, bardziej kompaktowa, z ikoną w zasobniku i autostartem. Wydawana wyłącznie jako jeden instalator `OpenRoutine-x.y.z-setup-x64.exe`.

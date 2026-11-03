@@ -273,6 +273,26 @@ pub fn run(a: &Block, local: &mut HashMap<String, String>, r: &Routine, stop: &A
             }
         }
         "a.log" => e.log(&r.name, x("text"), true),
+        "a.confirm" => {
+            let yes = sys::confirm(&x("title"), &x("text"));
+            local.insert("answer".into(), if yes { "tak" } else { "nie" }.into());
+            if !yes && a.pd("on_no", "stop") == "stop" {
+                return Ok(Flow::Stop);
+            }
+        }
+        "a.input" => {
+            let out = sys::powershell(&format!(
+                "Add-Type -AssemblyName Microsoft.VisualBasic; [Microsoft.VisualBasic.Interaction]::InputBox({}, {}, {})",
+                sys::ps_quote(&x("text")),
+                sys::ps_quote(&x("title")),
+                sys::ps_quote(&x("default"))
+            ))?;
+            let v = out.trim_end_matches(['\r', '\n']).to_string();
+            if v.is_empty() && a.flag("stop_if_empty") {
+                return Ok(Flow::Stop);
+            }
+            store(local, a.pd("scope", "local") == "global", a.pd("var", "input"), v);
+        }
 
         // ------------------------------------------------ aplikacje i okna
         "a.run" => {
@@ -452,6 +472,48 @@ pub fn run(a: &Block, local: &mut HashMap<String, String>, r: &Routine, stop: &A
         "a.file_read" => {
             let s = std::fs::read_to_string(x("path")).map_err(|e| e.to_string())?;
             store(local, a.pd("scope", "local") == "global", a.pd("var", "file_text"), s);
+        }
+        "a.file_list" => {
+            let sel = collect(&x("folder"), &x("pattern"), a.num("older_days", 0.0), a.flag("recursive"))?;
+            let full = a.pd("format", "name") == "path";
+            let mut names: Vec<String> = sel
+                .files
+                .iter()
+                .map(|p| if full { p.display().to_string() } else { p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default() })
+                .collect();
+            names.sort();
+            local.insert("files_count".into(), names.len().to_string());
+            store(local, a.pd("scope", "local") == "global", a.pd("var", "files"), names.join("\n"));
+        }
+        "a.rename" => {
+            let sel = collect(&x("folder"), &x("pattern"), 0.0, false)?;
+            let tpl = a.pd("template", "{mdate} {name}{ext}").to_string();
+            let mut files = sel.files;
+            files.sort();
+            let mut n = 0;
+            for (i, f) in files.iter().enumerate() {
+                let stem = f.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+                let ext = f.extension().map(|s| format!(".{}", s.to_string_lossy())).unwrap_or_default();
+                let md = std::fs::metadata(f).and_then(|m| m.modified()).ok().map(chrono::DateTime::<chrono::Local>::from);
+                let mut name = tpl
+                    .replace("{name}", &stem)
+                    .replace("{ext}", &ext)
+                    .replace("{n}", &format!("{:0w$}", i + 1, w = a.num("digits", 3.0).clamp(1.0, 6.0) as usize))
+                    .replace("{mdate}", &md.map(|d| d.format("%Y-%m-%d").to_string()).unwrap_or_default())
+                    .replace("{mtime}", &md.map(|d| d.format("%H-%M-%S").to_string()).unwrap_or_default());
+                name = vars::expand(&name, local, &globals);
+                let find = x("find");
+                if !find.is_empty() {
+                    name = name.replace(&find, &x("replace"));
+                }
+                let name: String = name.chars().map(|c| if "\\/:*?\"<>|".contains(c) { '_' } else { c }).collect();
+                let dest = f.with_file_name(name.trim());
+                if dest != *f && !dest.exists() {
+                    std::fs::rename(f, &dest).map_err(|e| e.to_string())?;
+                    n += 1;
+                }
+            }
+            local.insert("files_count".into(), n.to_string());
         }
         "a.folder_create" => std::fs::create_dir_all(x("path")).map_err(|e| e.to_string())?,
         "a.organize" => {

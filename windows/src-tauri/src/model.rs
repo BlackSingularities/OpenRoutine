@@ -120,6 +120,19 @@ pub struct Settings {
     pub onboarded: bool,
     #[serde(default)]
     pub density: String,
+    #[serde(default = "default_lat")]
+    pub latitude: f64,
+    #[serde(default = "default_lon")]
+    pub longitude: f64,
+    #[serde(default)]
+    pub city: String,
+}
+
+fn default_lat() -> f64 {
+    52.2297
+}
+fn default_lon() -> f64 {
+    21.0122
 }
 
 fn default_port() -> u16 {
