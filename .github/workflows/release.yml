@@ -81,8 +81,58 @@ jobs:
           name: OpenRoutine-${{ needs.version.outputs.name }}-android
           path: OpenRoutine-${{ needs.version.outputs.name }}.apk
 
+  # Windows: wyłącznie instalator NSIS (bez wersji przenośnej i dodatkowych plików).
+  windows:
+    needs: version
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: windows/src-tauri
+
+      - name: Wersja z tagu
+        shell: pwsh
+        run: |
+          $v = "${{ needs.version.outputs.name }}"
+          $c = Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
+          $c.version = $v
+          $c | ConvertTo-Json -Depth 20 | Set-Content src-tauri/tauri.conf.json -Encoding utf8
+          (Get-Content src-tauri/Cargo.toml -Raw) -replace '(?m)^version = ".*"$', "version = `"$v`"" | Set-Content src-tauri/Cargo.toml -Encoding utf8
+
+      - run: npm ci
+
+      - name: Testy silnika
+        run: cargo test --manifest-path src-tauri/Cargo.toml --lib
+
+      - name: Instalator
+        run: npx tauri build
+
+      - name: Przygotowanie pliku
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          Copy-Item $exe.FullName "../OpenRoutine-${{ needs.version.outputs.name }}-setup-x64.exe"
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: OpenRoutine-${{ needs.version.outputs.name }}-windows
+          path: OpenRoutine-${{ needs.version.outputs.name }}-setup-x64.exe
+
   release:
-    needs: [version, android]
+    needs: [version, android, windows]
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     steps:
@@ -102,8 +152,8 @@ jobs:
         run: |
           NOTES=$(awk -v version="$NAME" '$0 == "## " version { found=1; next } found && /^## / { exit } found { print }' CHANGELOG.md)
           [ -n "$NOTES" ] || NOTES=$(printf 'Poprawki i ulepszenia.')
-          FOOTER=$(printf -- '---\n**Android:** pobierz **OpenRoutine-%s.apk** i zainstaluj go na telefonie (Android 10+). Kolejne wersje aplikacja pobierze i zainstaluje sama.' "$NAME")
-          gh release create "$GITHUB_REF_NAME" "dist/OpenRoutine-$NAME.apk" \
+          FOOTER=$(printf -- '---\n**Android:** pobierz **OpenRoutine-%s.apk** i zainstaluj go na telefonie (Android 10+). Kolejne wersje aplikacja pobierze i zainstaluje sama.\n\n**Windows:** pobierz **OpenRoutine-%s-setup-x64.exe** i uruchom instalator (Windows 10/11, 64-bit).' "$NAME" "$NAME")
+          gh release create "$GITHUB_REF_NAME" "dist/OpenRoutine-$NAME.apk" "dist/OpenRoutine-$NAME-setup-x64.exe" \
             --verify-tag \
             --title "OpenRoutine $NAME" \
             --notes "$(printf '%s\n\n%s' "$NOTES" "$FOOTER")" \

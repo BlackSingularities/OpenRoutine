@@ -1,0 +1,190 @@
+// Gotowe szablony – punkt wyjścia do własnych rutyn.
+import type { RoutineDraft } from "./api";
+
+type B = { type: string; params?: Record<string, string> };
+export interface Preset {
+  title: string;
+  desc: string;
+  group: string;
+  r: { triggers: B[]; conditions?: B[]; actions: B[]; matchAll?: boolean; cooldownSec?: number; stopOnError?: boolean };
+}
+
+export const GROUPS = ["Dzień i praca", "Skupienie i zdrowie", "Zasilanie i bateria", "Aplikacje i okna", "Pliki i kopie", "Sieć i urządzenia", "Konserwacja systemu", "Schowek i tekst", "Integracje i zaawansowane"];
+
+const b = (type: string, params: Record<string, string> = {}): B => ({ type, params });
+
+export const PRESETS: Preset[] = [
+  // ---------------------------------------------------------------- Dzień i praca
+  { group: "Dzień i praca", title: "Poranny start", desc: "W dni robocze po zalogowaniu otwiera pocztę, kalendarz i komunikator, wita głosem.",
+    r: { triggers: [b("t.startup", { delay: "20" })], conditions: [b("c.days", { days: "12345" }), b("c.time", { from: "05:00", to: "11:00" })],
+      actions: [b("a.open", { target: "https://outlook.office.com/mail/" }), b("a.open", { target: "https://calendar.google.com" }), b("a.speak", { text: "Dzień dobry, {user}. Jest {time}, {weekday}." })] } },
+  { group: "Dzień i praca", title: "Koniec pracy", desc: "O 17:00 przypomina o zapisaniu pracy, potem zamyka Teams i Outlook.",
+    r: { triggers: [b("t.time", { time: "17:00", days: "12345" })], actions: [b("a.msgbox", { title: "Koniec pracy", text: "Zapisz otwarte dokumenty. Za 5 minut zamknę Teams i Outlook.", wait: "0" }), b("a.wait", { seconds: "300" }), b("a.kill", { app: "ms-teams;outlook", force: "0" })] } },
+  { group: "Dzień i praca", title: "Tryb prezentacji", desc: "Ctrl+Alt+P: wycisza dźwięk, ukrywa okna komunikatorów i pokazuje pulpit.",
+    r: { triggers: [b("t.hotkey", { keys: "ctrl+alt+p" })], actions: [b("a.volume", { mode: "mute" }), b("a.window", { title: "Teams", op: "minimize", quiet: "1" }), b("a.window", { title: "Slack", op: "minimize", quiet: "1" }), b("a.notify", { title: "Tryb prezentacji", text: "Dźwięk wyciszony, komunikatory schowane." })] } },
+  { group: "Dzień i praca", title: "Spotkanie w Teams/Zoom", desc: "Gdy startuje Zoom lub Teams na spotkaniu – pauzuje muzykę.",
+    r: { triggers: [b("t.app_start", { app: "zoom;cpthost" }), b("t.window_title", { text: "Spotkanie" })], actions: [b("a.media", { cmd: "play" }), b("a.notify", { title: "Spotkanie", text: "Muzyka wstrzymana." })], cooldownSec: 600 } },
+  { group: "Dzień i praca", title: "Ciemny motyw wieczorem", desc: "O 19:00 ciemny motyw Windows, o 7:00 jasny.",
+    r: { triggers: [b("t.time", { time: "19:00", days: "1234567" })], actions: [b("a.theme", { mode: "dark", scope: "both" })] } },
+  { group: "Dzień i praca", title: "Jasny motyw rano", desc: "O 7:00 przełącza Windows na jasny motyw.",
+    r: { triggers: [b("t.time", { time: "07:00", days: "1234567" })], actions: [b("a.theme", { mode: "light", scope: "both" })] } },
+  { group: "Dzień i praca", title: "Dziennik pracy", desc: "Zapisuje do pliku godzinę zalogowania, blokady i odblokowania komputera.",
+    r: { triggers: [b("t.startup", { delay: "5" }), b("t.lock", { state: "lock" }), b("t.lock", { state: "unlock" })], actions: [b("a.file_write", { path: "{documents}\\Czas pracy {year}-{month}.csv", text: "{date};{time};{trigger}", mode: "append", newline: "1" })] } },
+  { group: "Dzień i praca", title: "Przypomnienie o raporcie", desc: "Ostatniego dnia miesiąca o 10:00 przypomina o raporcie miesięcznym.",
+    r: { triggers: [b("t.monthday", { day: "last", time: "10:00" })], actions: [b("a.notify", { title: "Raport miesięczny", text: "Dziś ostatni dzień miesiąca – wyślij raport." }), b("a.beep", { kind: "warning" })] } },
+  { group: "Dzień i praca", title: "Zegar mówiący", desc: "Co pełną godzinę w godzinach pracy mówi, która jest godzina.",
+    r: { triggers: [b("t.interval", { minutes: "60", from: "08:00", to: "18:00", days: "12345" })], actions: [b("a.speak", { text: "Jest godzina {hour}." })] } },
+  { group: "Dzień i praca", title: "Notatka dnia", desc: "Ctrl+Alt+J otwiera notatnik z plikiem na dzisiejszy dzień.",
+    r: { triggers: [b("t.hotkey", { keys: "ctrl+alt+j" })], actions: [b("a.folder_create", { path: "{documents}\\Notatki" }), b("a.file_write", { path: "{documents}\\Notatki\\{date}.txt", text: "", mode: "append", newline: "0" }), b("a.run", { path: "notepad.exe", args: "\"{documents}\\Notatki\\{date}.txt\"" })] } },
+
+  // ---------------------------------------------------------------- Skupienie i zdrowie
+  { group: "Skupienie i zdrowie", title: "Przerwa dla oczu (20-20-20)", desc: "Co 20 minut pracy przypomina, by przez 20 s spojrzeć w dal.",
+    r: { triggers: [b("t.interval", { minutes: "20", from: "07:00", to: "22:00" })], conditions: [b("c.idle", { op: "lt", minutes: "5" }), b("c.fullscreen", { state: "no" })], actions: [b("a.notify", { title: "Przerwa dla oczu", text: "Spójrz na coś oddalonego o 6 m przez 20 sekund." })] } },
+  { group: "Skupienie i zdrowie", title: "Rozprostuj się", desc: "Po 50 minutach ciągłej pracy przypomina o przerwie.",
+    r: { triggers: [b("t.interval", { minutes: "50" })], conditions: [b("c.idle", { op: "lt", minutes: "3" }), b("c.locked", { state: "no" })], actions: [b("a.msgbox", { title: "Przerwa", text: "Pracujesz od dłuższego czasu. Wstań, przejdź się, napij się wody." }), b("a.var_inc", { name: "przerwy_dzis", by: "1" })] } },
+  { group: "Skupienie i zdrowie", title: "Pij wodę", desc: "Co 90 minut w ciągu dnia przypomnienie o wodzie.",
+    r: { triggers: [b("t.interval", { minutes: "90", from: "08:00", to: "20:00" })], actions: [b("a.notify", { title: "Woda", text: "Czas na szklankę wody 💧" })] } },
+  { group: "Skupienie i zdrowie", title: "Pomodoro", desc: "Ctrl+Alt+F: 25 minut skupienia z wyciszeniem, potem 5 minut przerwy.",
+    r: { triggers: [b("t.hotkey", { keys: "ctrl+alt+f" }), b("t.manual")], actions: [b("a.notify", { title: "Pomodoro", text: "25 minut skupienia – start {time}." }), b("a.volume", { mode: "mute" }), b("a.kill", { app: "discord;slack", force: "0" }), b("a.wait", { seconds: "1500" }), b("a.volume", { mode: "unmute" }), b("a.tone", { freq: "880", ms: "250", repeat: "3" }), b("a.msgbox", { title: "Pomodoro", text: "Koniec bloku. 5 minut przerwy!" }), b("a.var_inc", { name: "pomodoro", by: "1" })] } },
+  { group: "Skupienie i zdrowie", title: "Bez rozpraszaczy", desc: "W godzinach pracy zamyka gry i media społecznościowe w tytule okna.",
+    r: { triggers: [b("t.app_start", { app: "steam;epicgameslauncher;discord" }), b("t.window_title", { text: "Facebook" })], conditions: [b("c.days", { days: "12345" }), b("c.time", { from: "09:00", to: "16:00" })],
+      actions: [b("a.kill", { app: "{app}", force: "0" }), b("a.notify", { title: "Skupienie", text: "{app} poczeka do 16:00." })] } },
+  { group: "Skupienie i zdrowie", title: "Pora spać", desc: "O 23:30 przypomina o śnie, ścisza i wyłącza monitor po 15 minutach bezczynności.",
+    r: { triggers: [b("t.time", { time: "23:30", days: "1234567" })], actions: [b("a.notify", { title: "Pora spać", text: "Jest {time}. Zapisz pracę i odpocznij." }), b("a.volume", { mode: "set", level: "20" })] } },
+  { group: "Skupienie i zdrowie", title: "Noc: uśpij bezczynny komputer", desc: "Po północy, po 20 minutach bezczynności na zasilaczu – usypia komputer.",
+    r: { triggers: [b("t.idle", { minutes: "20" })], conditions: [b("c.time", { from: "00:00", to: "06:00" }), b("c.fullscreen", { state: "no" })], actions: [b("a.sleep", { mode: "sleep" })] } },
+  { group: "Skupienie i zdrowie", title: "Witaj z powrotem", desc: "Po powrocie z przerwy dłuższej niż 15 minut mówi, jak długo cię nie było.",
+    r: { triggers: [b("t.active", { minutes: "15" })], actions: [b("a.notify", { title: "Witaj z powrotem", text: "Przerwa trwała {idle_min} min." })] } },
+
+  // ---------------------------------------------------------------- Zasilanie i bateria
+  { group: "Zasilanie i bateria", title: "Słaba bateria", desc: "Przy 20% ostrzega dźwiękiem i włącza plan oszczędzania energii.",
+    r: { triggers: [b("t.battery", { dir: "below", level: "20" })], conditions: [b("c.power", { state: "battery" })], actions: [b("a.power_plan", { plan: "saver" }), b("a.beep", { kind: "warning" }), b("a.notify", { title: "Bateria {battery}%", text: "Podłącz zasilacz. Włączono oszczędzanie energii." })] } },
+  { group: "Zasilanie i bateria", title: "Krytyczna bateria – hibernacja", desc: "Przy 5% zapisuje stan i hibernuje, zanim laptop się wyłączy.",
+    r: { triggers: [b("t.battery", { dir: "below", level: "5" })], conditions: [b("c.power", { state: "battery" })], actions: [b("a.speak", { text: "Bateria prawie pusta. Hibernuję za 30 sekund." }), b("a.wait", { seconds: "30" }), b("a.stop_if", { name: "charging", op: "eq", value: "tak" }), b("a.sleep", { mode: "hibernate" })] } },
+  { group: "Zasilanie i bateria", title: "Naładowano do 80%", desc: "Dba o baterię: przypomina, by odłączyć zasilacz przy 80%.",
+    r: { triggers: [b("t.battery", { dir: "above", level: "80" })], conditions: [b("c.power", { state: "ac" })], actions: [b("a.notify", { title: "Bateria 80%", text: "Możesz odłączyć zasilacz – to przedłuża życie baterii." })] } },
+  { group: "Zasilanie i bateria", title: "Zasilacz = wydajność", desc: "Po podłączeniu zasilacza plan Wysoka wydajność, po odłączeniu Zrównoważony.",
+    r: { triggers: [b("t.power", { state: "plugged" })], actions: [b("a.power_plan", { plan: "high" }), b("a.notify", { title: "Zasilacz", text: "Plan: wysoka wydajność ({battery}%)." })] } },
+  { group: "Zasilanie i bateria", title: "Na baterii = oszczędnie", desc: "Po odłączeniu zasilacza plan zrównoważony i niższa jasność.",
+    r: { triggers: [b("t.power", { state: "unplugged" })], actions: [b("a.power_plan", { plan: "balanced" }), b("a.brightness", { level: "50" })] } },
+  { group: "Zasilanie i bateria", title: "Zablokuj, gdy odchodzę", desc: "Po 5 minutach bezczynności blokuje komputer (chyba że trwa film na pełnym ekranie).",
+    r: { triggers: [b("t.idle", { minutes: "5" })], conditions: [b("c.fullscreen", { state: "no" }), b("c.locked", { state: "no" })], actions: [b("a.lock")] } },
+  { group: "Zasilanie i bateria", title: "Wyłącz monitor po blokadzie", desc: "Po zablokowaniu ekranu od razu wygasza monitor.",
+    r: { triggers: [b("t.lock", { state: "lock" })], actions: [b("a.wait", { seconds: "3" }), b("a.monitor_off")] } },
+  { group: "Zasilanie i bateria", title: "Wyłącz komputer o 1:00", desc: "Jeśli nikt go nie używa – wyłącza z minutą ostrzeżenia.",
+    r: { triggers: [b("t.time", { time: "01:00", days: "1234567" })], conditions: [b("c.idle", { op: "ge", minutes: "15" })], actions: [b("a.shutdown", { mode: "shutdown", delay: "60" })] } },
+
+  // ---------------------------------------------------------------- Aplikacje i okna
+  { group: "Aplikacje i okna", title: "Gra = tryb gracza", desc: "Gdy gra przejdzie na pełny ekran: wysoka wydajność, zamyka zbędne programy.",
+    r: { triggers: [b("t.fullscreen", { state: "enter" })], conditions: [b("c.app_focus", { app: "*" })], actions: [b("a.power_plan", { plan: "high" }), b("a.kill", { app: "onedrive;teams", force: "0" }), b("a.log", { text: "Tryb gracza: {app}" })] } },
+  { group: "Aplikacje i okna", title: "Po grze", desc: "Po wyjściu z pełnego ekranu przywraca plan zrównoważony i OneDrive.",
+    r: { triggers: [b("t.fullscreen", { state: "exit" })], actions: [b("a.power_plan", { plan: "balanced" }), b("a.run", { path: "%LOCALAPPDATA%\\Microsoft\\OneDrive\\OneDrive.exe", args: "/background" })], cooldownSec: 60 } },
+  { group: "Aplikacje i okna", title: "Photoshop = głośność 0", desc: "Przy przełączeniu na aplikację graficzną wycisza dźwięk.",
+    r: { triggers: [b("t.app_focus", { app: "photoshop;lightroom;illustrator" })], actions: [b("a.volume", { mode: "mute" })] } },
+  { group: "Aplikacje i okna", title: "Zestaw do programowania", desc: "Ctrl+Alt+D uruchamia VS Code, terminal i przeglądarkę z dokumentacją.",
+    r: { triggers: [b("t.hotkey", { keys: "ctrl+alt+d" })], actions: [b("a.run", { path: "code" }), b("a.run", { path: "wt.exe" }), b("a.open", { target: "https://developer.mozilla.org" })] } },
+  { group: "Aplikacje i okna", title: "Zamknij wszystko na noc", desc: "Ręcznie lub ze skrótu zamyka przeglądarki i komunikatory.",
+    r: { triggers: [b("t.manual"), b("t.hotkey", { keys: "ctrl+alt+q" })], actions: [b("a.kill", { app: "chrome;msedge;firefox;ms-teams;slack;discord", force: "0" }), b("a.minimize_all")] } },
+  { group: "Aplikacje i okna", title: "Licznik uruchomień Chrome", desc: "Liczy, ile razy dziennie otwierasz przeglądarkę.",
+    r: { triggers: [b("t.app_start", { app: "chrome;msedge;firefox" })], actions: [b("a.var_inc", { name: "przegladarka_dzis", by: "1" })] } },
+  { group: "Aplikacje i okna", title: "Wyzeruj liczniki o północy", desc: "Codziennie o 00:00 zeruje dzienne liczniki.",
+    r: { triggers: [b("t.time", { time: "00:00", days: "1234567" })], actions: [b("a.var_set", { name: "przegladarka_dzis", value: "0", scope: "global" }), b("a.var_set", { name: "przerwy_dzis", value: "0", scope: "global" }), b("a.var_set", { name: "pomodoro", value: "0", scope: "global" })] } },
+  { group: "Aplikacje i okna", title: "Spotify ciszej przy rozmowie", desc: "Gdy Discord lub Teams staje się aktywny – ścisza o 30%.",
+    r: { triggers: [b("t.app_focus", { app: "discord;ms-teams" })], conditions: [b("c.volume", { op: "gt", level: "30" })], actions: [b("a.volume", { mode: "down", level: "30" })], cooldownSec: 120 } },
+  { group: "Aplikacje i okna", title: "Zawieszony program", desc: "Gdy procesor jest zajęty > 95% przez 2 minuty – powiadamia, która aplikacja jest aktywna.",
+    r: { triggers: [b("t.cpu", { level: "95", seconds: "120" })], actions: [b("a.notify", { title: "Procesor {value}%", text: "Aktywna: {foreground_app}. Sprawdź Menedżera zadań (Ctrl+Shift+Esc)." })] } },
+
+  // ---------------------------------------------------------------- Pliki i kopie
+  { group: "Pliki i kopie", title: "Porządek w Pobranych", desc: "Codziennie o 18:00 rozkłada Pobrane do podfolderów według rodzaju.",
+    r: { triggers: [b("t.time", { time: "18:00", days: "1234567" }), b("t.manual")], actions: [b("a.organize", { folder: "{downloads}", by: "type", pattern: "*", older_days: "1" }), b("a.notify", { title: "Pobrane", text: "Uporządkowano {files_count} plików." })] } },
+  { group: "Pliki i kopie", title: "PDF-y do Dokumentów", desc: "Każdy nowy PDF w Pobranych trafia do Dokumenty\\PDF.",
+    r: { triggers: [b("t.file", { folder: "{downloads}", pattern: "*.pdf", change: "new", recursive: "0", every: "3" })], actions: [b("a.wait", { seconds: "2" }), b("a.file_move", { source: "{file}", pattern: "*", dest: "{documents}\\PDF", older_days: "0", conflict: "rename" }), b("a.notify", { title: "Nowy PDF", text: "{file_name} → Dokumenty\\PDF" })] } },
+  { group: "Pliki i kopie", title: "Kopia Dokumentów na pendrive", desc: "Po podłączeniu dysku z etykietą KOPIA pakuje Dokumenty do ZIP na tym dysku.",
+    r: { triggers: [b("t.drive", { state: "connected", label: "KOPIA*" })], actions: [b("a.notify", { title: "Kopia", text: "Pakuję Dokumenty na {drive}…" }), b("a.zip", { source: "{documents}\\*", dest: "{drive}\\Kopie\\Dokumenty {stamp}.zip" }), b("a.notify", { title: "Kopia gotowa", text: "{zip}" })] } },
+  { group: "Pliki i kopie", title: "Cotygodniowa kopia pulpitu", desc: "W piątek o 15:00 pakuje Pulpit do Dokumenty\\Kopie.",
+    r: { triggers: [b("t.time", { time: "15:00", days: "5" })], actions: [b("a.folder_create", { path: "{documents}\\Kopie" }), b("a.zip", { source: "{desktop}\\*", dest: "{documents}\\Kopie\\Pulpit {date}.zip" }), b("a.file_delete", { source: "{documents}\\Kopie", pattern: "Pulpit *.zip", older_days: "60", recursive: "0", mode: "recycle" })] } },
+  { group: "Pliki i kopie", title: "Zdjęcia z karty SD", desc: "Po włożeniu karty kopiuje zdjęcia z DCIM do Obrazy\\Import\\{date}.",
+    r: { triggers: [b("t.drive", { state: "connected", label: "" })], conditions: [b("c.file", { path: "{drive}\\DCIM", state: "yes" })], actions: [b("a.file_copy", { source: "{drive}\\DCIM", pattern: "*.jpg;*.jpeg;*.heic;*.cr2;*.nef;*.arw;*.dng;*.mp4", dest: "{pictures}\\Import\\{date}", older_days: "0", recursive: "1", conflict: "skip" }), b("a.notify", { title: "Import zdjęć", text: "Skopiowano {files_count} plików z {drive}." })] } },
+  { group: "Pliki i kopie", title: "Zrzuty ekranu w porządku", desc: "Nowe zrzuty (Win+Shift+S zapisane w Obrazy\\Zrzuty ekranu) przenosi do folderów miesięcznych.",
+    r: { triggers: [b("t.time", { time: "12:00", days: "1234567" })], actions: [b("a.organize", { folder: "{pictures}\\Screenshots", by: "date", pattern: "*.png", older_days: "0" })] } },
+  { group: "Pliki i kopie", title: "Rozpakuj pobrane ZIP", desc: "Nowe archiwum ZIP w Pobranych rozpakowuje do folderu o tej samej nazwie.",
+    r: { triggers: [b("t.file", { folder: "{downloads}", pattern: "*.zip", change: "new", recursive: "0", every: "3" })], actions: [b("a.wait", { seconds: "2" }), b("a.unzip", { source: "{file}", dest: "{file_dir}\\{file_base}" }), b("a.open", { target: "{file_dir}\\{file_base}" })] } },
+  { group: "Pliki i kopie", title: "Czyść stare instalatory", desc: "Co tydzień przenosi do Kosza instalatory .exe/.msi z Pobranych starsze niż 30 dni.",
+    r: { triggers: [b("t.time", { time: "10:00", days: "1" })], actions: [b("a.file_delete", { source: "{downloads}", pattern: "*.exe;*.msi", older_days: "30", recursive: "0", mode: "recycle" }), b("a.log", { text: "Usunięto {files_count} instalatorów" })] } },
+  { group: "Pliki i kopie", title: "Zrzut ekranu skrótem", desc: "Ctrl+Alt+S zapisuje zrzut wszystkich ekranów i otwiera folder.",
+    r: { triggers: [b("t.hotkey", { keys: "ctrl+alt+s" })], actions: [b("a.screenshot", { folder: "{pictures}\\Zrzuty OpenRoutine" }), b("a.notify", { title: "Zrzut zapisany", text: "{file}" })] } },
+
+  // ---------------------------------------------------------------- Sieć i urządzenia
+  { group: "Sieć i urządzenia", title: "Brak internetu", desc: "Powiadamia o utracie i powrocie połączenia, zapisuje przerwy do dziennika.",
+    r: { triggers: [b("t.network", { state: "offline" })], actions: [b("a.notify", { title: "Brak internetu", text: "Połączenie zerwane o {time}." }), b("a.dns_flush"), b("a.log", { text: "Internet zniknął {datetime}" })] } },
+  { group: "Sieć i urządzenia", title: "Internet wrócił", desc: "Informuje, że połączenie wróciło.",
+    r: { triggers: [b("t.network", { state: "online" })], actions: [b("a.notify", { title: "Internet wrócił", text: "Połączono o {time}." })] } },
+  { group: "Sieć i urządzenia", title: "Biuro: Wi-Fi firmowe", desc: "Po połączeniu z siecią firmową uruchamia Teams i Outlook, ścisza dźwięk.",
+    r: { triggers: [b("t.wifi", { state: "connected", ssid: "Firma*" })], actions: [b("a.volume", { mode: "set", level: "15" }), b("a.run", { path: "ms-teams:" }), b("a.run", { path: "outlook.exe" })] } },
+  { group: "Sieć i urządzenia", title: "Dom: Wi-Fi domowe", desc: "Po powrocie do domu włącza Spotify i plan zrównoważony.",
+    r: { triggers: [b("t.wifi", { state: "connected", ssid: "" })], conditions: [b("c.time", { from: "15:00", to: "23:00" })], actions: [b("a.run", { path: "spotify:" }), b("a.power_plan", { plan: "balanced" })] } },
+  { group: "Sieć i urządzenia", title: "Stacja dokująca", desc: "Po podłączeniu drugiego monitora otwiera zestaw do pracy.",
+    r: { triggers: [b("t.monitors", { dir: "more" })], actions: [b("a.notify", { title: "Monitor", text: "Podłączono, monitorów: {monitors}." }), b("a.run", { path: "outlook.exe" })] } },
+  { group: "Sieć i urządzenia", title: "NAS niedostępny", desc: "Co 15 minut sprawdza serwer kopii; gdy nie odpowiada – ostrzega.",
+    r: { triggers: [b("t.interval", { minutes: "15" })], conditions: [b("c.host", { host: "192.168.1.10:445", state: "no", timeout: "1500" })], actions: [b("a.notify", { title: "NAS nie odpowiada", text: "192.168.1.10 jest nieosiągalny ({time})." })], cooldownSec: 3600 } },
+  { group: "Sieć i urządzenia", title: "Pendrive podłączony", desc: "Otwiera nowy dysk w Eksploratorze i mówi jego nazwę.",
+    r: { triggers: [b("t.drive", { state: "connected", label: "" })], actions: [b("a.open", { target: "{drive}\\" }), b("a.notify", { title: "Dysk {drive}", text: "{drive_label}" })] } },
+
+  // ---------------------------------------------------------------- Konserwacja systemu
+  { group: "Konserwacja systemu", title: "Sprzątanie w niedzielę", desc: "W niedzielę o 20:00 czyści TEMP, opróżnia Kosz i podaje wolne miejsce.",
+    r: { triggers: [b("t.time", { time: "20:00", days: "7" }), b("t.manual")], actions: [b("a.clear_temp", { days: "3" }), b("a.recycle"), b("a.powershell", { script: "[math]::Round((Get-PSDrive C).Free/1GB,1)", var: "wolne", scope: "local" }), b("a.notify", { title: "Sprzątanie", text: "Usunięto {files_count} plików tymczasowych. Wolne: {wolne} GB." })] } },
+  { group: "Konserwacja systemu", title: "Mało miejsca na C:", desc: "Gdy na C: zostanie mniej niż 15 GB – ostrzega i otwiera ustawienia magazynu.",
+    r: { triggers: [b("t.disk", { drive: "C", gb: "15" })], actions: [b("a.msgbox", { title: "Mało miejsca", text: "Na dysku C: zostało {free_gb} GB." }), b("a.settings", { page: "storagesense" })] } },
+  { group: "Konserwacja systemu", title: "Pamięć na wyczerpaniu", desc: "RAM > 90% przez 30 s – powiadomienie z aktywną aplikacją.",
+    r: { triggers: [b("t.ram", { level: "90", seconds: "30" })], actions: [b("a.notify", { title: "Pamięć {value}%", text: "Zamknij nieużywane programy. Aktywna: {foreground_app}." })], cooldownSec: 900 } },
+  { group: "Konserwacja systemu", title: "Restart po tygodniu", desc: "Jeśli komputer działa dłużej niż 7 dni – przypomina o ponownym uruchomieniu.",
+    r: { triggers: [b("t.time", { time: "09:30", days: "1234567" })], conditions: [b("c.uptime", { op: "gt", hours: "168" })], actions: [b("a.notify", { title: "Uruchom ponownie", text: "Windows działa {uptime_h} h. Restart przyspieszy system i zainstaluje aktualizacje." })] } },
+  { group: "Konserwacja systemu", title: "Zawieszony pasek zadań", desc: "Ctrl+Alt+E uruchamia ponownie Eksplorator Windows.",
+    r: { triggers: [b("t.hotkey", { keys: "ctrl+alt+e" })], actions: [b("a.restart_explorer")] } },
+  { group: "Konserwacja systemu", title: "Lista programów w autostarcie", desc: "Raz w miesiącu zapisuje listę programów startowych do pliku.",
+    r: { triggers: [b("t.monthday", { day: "1", time: "12:00" }), b("t.manual")], actions: [b("a.powershell", { script: "Get-CimInstance Win32_StartupCommand | Select-Object Name,Command | Format-Table -AutoSize | Out-String -Width 300", var: "", scope: "local" }), b("a.file_write", { path: "{documents}\\Autostart {date}.txt", text: "{output}", mode: "overwrite", newline: "1" })] } },
+  { group: "Konserwacja systemu", title: "Tapeta na każdy dzień", desc: "Codziennie losowa tapeta z folderu Obrazy\\Tapety.",
+    r: { triggers: [b("t.startup", { delay: "60" }), b("t.time", { time: "08:00", days: "1234567" })], actions: [b("a.wallpaper", { file: "{pictures}\\Tapety" })], cooldownSec: 3600 } },
+
+  // ---------------------------------------------------------------- Schowek i tekst
+  { group: "Schowek i tekst", title: "Historia schowka", desc: "Każdy skopiowany tekst dopisuje do pliku z datą.",
+    r: { triggers: [b("t.clipboard", { match: "contains", filter: "" })], actions: [b("a.file_write", { path: "{documents}\\Historia schowka.txt", text: "[{datetime}] {clipboard}", mode: "append", newline: "1" })], cooldownSec: 1 } },
+  { group: "Schowek i tekst", title: "Czysty link", desc: "Usuwa parametry śledzące (utm_…, fbclid) ze skopiowanych linków.",
+    r: { triggers: [b("t.clipboard", { match: "regex", filter: "https?://\\S+[?&](utm_|fbclid|gclid)" })], actions: [b("a.text", { input: "{clipboard}", op: "regex_replace", a: "([?&])(utm_[^&]*|fbclid=[^&]*|gclid=[^&]*)&?", b: "$1", var: "czysty", scope: "local" }), b("a.text", { input: "{czysty}", op: "regex_replace", a: "[?&]$", b: "", var: "czysty", scope: "local" }), b("a.clip_set", { text: "{czysty}" }), b("a.notify", { title: "Link wyczyszczony", text: "{czysty}" })] } },
+  { group: "Schowek i tekst", title: "Wstaw dzisiejszą datę", desc: "Ctrl+Alt+; wpisuje datę w aktywnym oknie.",
+    r: { triggers: [b("t.hotkey", { keys: "ctrl+alt+;" })], actions: [b("a.type", { text: "{date}", delay: "0" })] } },
+  { group: "Schowek i tekst", title: "Podpis e-mail", desc: "Ctrl+Alt+M wpisuje podpis wiadomości.",
+    r: { triggers: [b("t.hotkey", { keys: "ctrl+alt+m" })], actions: [b("a.type", { text: "Pozdrawiam serdecznie\n{user}", delay: "0" })] } },
+  { group: "Schowek i tekst", title: "Wielkie litery ze schowka", desc: "Ctrl+Alt+U zamienia tekst w schowku na WIELKIE LITERY.",
+    r: { triggers: [b("t.hotkey", { keys: "ctrl+alt+u" })], actions: [b("a.text", { input: "{clipboard}", op: "upper", var: "t", scope: "local" }), b("a.clip_set", { text: "{t}" })] } },
+  { group: "Schowek i tekst", title: "Wyszukaj zaznaczone", desc: "Ctrl+Alt+G kopiuje zaznaczenie i szuka go w Google.",
+    r: { triggers: [b("t.hotkey", { keys: "ctrl+alt+g" })], actions: [b("a.keys", { keys: "ctrl+c" }), b("a.wait", { seconds: "0.3" }), b("a.text", { input: "{clipboard}", op: "urlencode", var: "q", scope: "local" }), b("a.open", { target: "https://www.google.com/search?q={q}" })] } },
+  { group: "Schowek i tekst", title: "Tłumacz zaznaczone", desc: "Ctrl+Alt+T otwiera tłumacza z zaznaczonym tekstem.",
+    r: { triggers: [b("t.hotkey", { keys: "ctrl+alt+t" })], actions: [b("a.keys", { keys: "ctrl+c" }), b("a.wait", { seconds: "0.3" }), b("a.text", { input: "{clipboard}", op: "urlencode", var: "q", scope: "local" }), b("a.open", { target: "https://translate.google.com/?sl=auto&tl=pl&text={q}" })] } },
+  { group: "Schowek i tekst", title: "Numer konta bez spacji", desc: "Skopiowany numer rachunku (26 cyfr) zamienia na same cyfry.",
+    r: { triggers: [b("t.clipboard", { match: "regex", filter: "^\\s*(PL)?\\s*\\d{2}[ \\d]{24,40}\\s*$" })], actions: [b("a.text", { input: "{clipboard}", op: "digits", var: "nr", scope: "local" }), b("a.clip_set", { text: "{nr}" })] } },
+
+  // ---------------------------------------------------------------- Integracje
+  { group: "Integracje i zaawansowane", title: "Pogoda o poranku", desc: "Po zalogowaniu pobiera pogodę z wttr.in i pokazuje powiadomienie.",
+    r: { triggers: [b("t.startup", { delay: "30" })], conditions: [b("c.time", { from: "05:00", to: "11:00" }), b("c.network", { state: "online" })], actions: [b("a.http", { method: "GET", url: "https://wttr.in/?format=%C+%t&lang=pl", var: "pogoda", scope: "local" }), b("a.notify", { title: "Pogoda", text: "{pogoda}" })] } },
+  { group: "Integracje i zaawansowane", title: "Powiadomienie na telefon (ntfy)", desc: "Gdy bateria laptopa spadnie do 15% – wysyła push przez ntfy.sh.",
+    r: { triggers: [b("t.battery", { dir: "below", level: "15" })], actions: [b("a.http", { method: "POST", url: "https://ntfy.sh/moj-laptop-temat", body: "Laptop {computer}: bateria {battery}%", headers: "Title: OpenRoutine" })] } },
+  { group: "Integracje i zaawansowane", title: "Stan komputera do Home Assistant", desc: "Co 5 minut wysyła baterię, RAM i bezczynność do webhooka HA.",
+    r: { triggers: [b("t.interval", { minutes: "5" })], actions: [b("a.http", { method: "POST", url: "http://homeassistant.local:8123/api/webhook/pc-status", headers: "Content-Type: application/json", body: "{\"pc\":\"{computer}\",\"battery\":\"{battery}\",\"ram\":\"{ram}\",\"idle\":\"{idle}\",\"app\":\"{foreground_app}\"}", ignore_errors: "1" })] } },
+  { group: "Integracje i zaawansowane", title: "Discord: komputer włączony", desc: "Po zalogowaniu wysyła wiadomość na kanał Discorda (webhook).",
+    r: { triggers: [b("t.startup", { delay: "60" })], actions: [b("a.http", { method: "POST", url: "https://discord.com/api/webhooks/…", headers: "Content-Type: application/json", body: "{\"content\":\"{computer} uruchomiony o {time}\"}" })] } },
+  { group: "Integracje i zaawansowane", title: "Zdalne blokowanie przez HTTP", desc: "Zdarzenie „zablokuj” (np. z telefonu w sieci domowej przez przekierowanie) blokuje komputer.",
+    r: { triggers: [b("t.event", { name: "zablokuj" })], actions: [b("a.lock")] } },
+  { group: "Integracje i zaawansowane", title: "Kurs euro", desc: "W dni robocze o 9:00 pobiera kurs EUR z NBP do zmiennej {eur}.",
+    r: { triggers: [b("t.time", { time: "09:00", days: "12345" }), b("t.manual")], actions: [b("a.http", { method: "GET", url: "https://api.nbp.pl/api/exchangerates/rates/a/eur/?format=json", json: "rates.0.mid", var: "eur", scope: "global" }), b("a.notify", { title: "Kurs EUR", text: "1 EUR = {eur} PLN" })] } },
+  { group: "Integracje i zaawansowane", title: "Monitor strony WWW", desc: "Co 10 minut sprawdza, czy strona odpowiada kodem 200.",
+    r: { triggers: [b("t.interval", { minutes: "10" })], actions: [b("a.http", { method: "GET", url: "https://redzikowski.com", ignore_errors: "1", timeout: "15" }), b("a.stop_if", { name: "http_code", op: "eq", value: "200" }), b("a.notify", { title: "Strona nie działa", text: "Kod {http_code} o {time}" })], cooldownSec: 1800 } },
+  { group: "Integracje i zaawansowane", title: "Łańcuch rutyn", desc: "Gdy dowolna rutyna zakończy się błędem – zapisuje to w pliku.",
+    r: { triggers: [b("t.routine_done", { routine: "", result: "error" })], actions: [b("a.file_write", { path: "{documents}\\Błędy rutyn.txt", text: "{datetime} – {routine}", mode: "append", newline: "1" })] } },
+  { group: "Integracje i zaawansowane", title: "Losowy cytat na start", desc: "Po zalogowaniu wybiera motywujący cytat z listy.",
+    r: { triggers: [b("t.startup", { delay: "15" })], actions: [b("a.pick", { items: "Zrób dziś coś, za co jutro sobie podziękujesz.\nMałe kroki też prowadzą do celu.\nNajpierw najtrudniejsze.\nSkup się na jednej rzeczy naraz.", name: "cytat", scope: "local" }), b("a.notify", { title: "Na dobry początek", text: "{cytat}" })] } },
+];
+
+export function presetToRoutine(p: Preset): RoutineDraft {
+  return { name: p.title, group: p.group, notes: p.desc, triggers: p.r.triggers, conditions: p.r.conditions ?? [], actions: p.r.actions, matchAll: p.r.matchAll ?? true, cooldownSec: p.r.cooldownSec ?? 0, stopOnError: p.r.stopOnError ?? false };
+}

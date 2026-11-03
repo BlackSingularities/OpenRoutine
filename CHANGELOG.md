@@ -1,5 +1,12 @@
 # Zmiany
 
+## 1.2.0
+
+- **Nowość: OpenRoutine dla Windows** – osobna aplikacja (Tauri + Svelte) w stylu OpenPano, bardziej kompaktowa, z ikoną w zasobniku i autostartem. Wydawana wyłącznie jako jeden instalator `OpenRoutine-x.y.z-setup-x64.exe`.
+- Windows: 31 wyzwalaczy – godzina, interwał, dzień miesiąca, jednorazowo, po zalogowaniu, ręcznie, globalny skrót klawiszowy, bezczynność i powrót, blokada ekranu, zasilacz, bateria, oszczędzanie energii, CPU, RAM, miejsce na dysku, monitory, motyw, pełny ekran, start/zamknięcie/aktywacja aplikacji, tytuł okna, internet, Wi-Fi, dysk USB, plik w folderze, schowek, zdarzenie HTTP/CLI, inna rutyna, zmiana zmiennej.
+- Windows: 31 warunków i 62 akcje – m.in. powiadomienia, mowa, głośność, multimedia, programy i okna, klawisze i wpisywanie tekstu, blokada, uśpienie, wyłączanie, plan zasilania, motyw, tapeta, jasność, zrzut ekranu, kopiowanie/przenoszenie/porządkowanie plików, ZIP, Kosz, TEMP, DNS, HTTP, pobieranie, PowerShell, CMD, zmienne, obliczenia, tekst, JSON i sterowanie rutynami.
+- Windows: 75 szablonów w 9 grupach, dziennik z eksportem CSV, zmienne globalne z podglądem, widok stanu systemu na żywo, eksport i import rutyn, lokalny serwer HTTP z tokenem i polecenia `--run` / `--event`.
+
 ## 1.1.2
 
 - Dopasowane kolorystycznie tła ikon aplikacji i spójne zasoby graficzne.

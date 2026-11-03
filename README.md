@@ -4,7 +4,7 @@
 
 **Graficzny automat dla Twoich aplikacji: zdarzenie → warunek → akcja.** Na początek pliki, harmonogramy i jawnie udostępnione integracje – a do tego bateria, ekran, sieć, powiadomienia i SMS. Czarno-biały interfejs w stylu OpenPDF, bez reklam, śledzenia i konta. Rutyny zostają w telefonie.
 
-[![Build & Release](../../actions/workflows/android.yml/badge.svg)](../../actions/workflows/android.yml)
+[![Build & Release](../../actions/workflows/release.yml/badge.svg)](../../actions/workflows/android.yml)
 
 ## Pobieranie
 
@@ -47,6 +47,18 @@ adb shell am broadcast -a com.blacksingularities.openroutine.EVENT -p com.blacks
 ```
 
 W drugą stronę działają akcje „Wyślij intencję” i „Żądanie HTTP”.
+
+## Windows
+
+Osobna aplikacja w folderze [`windows/`](windows) – ten sam pomysł „gdy → jeśli → wykonaj”, kompaktowy czarno-biały interfejs w stylu OpenPano, praca w tle z ikoną w zasobniku.
+
+- **Instalacja:** z [Releases → Latest](../../releases/latest) pobierz `OpenRoutine-x.y.z-setup-x64.exe` (Windows 10/11, 64-bit). Wydawany jest wyłącznie instalator.
+- **Wyzwalacze (31):** godzina, interwał, dzień miesiąca, jednorazowo, po zalogowaniu, ręcznie (także z menu zasobnika), globalny skrót klawiszowy, bezczynność, powrót do komputera, blokada ekranu, zasilacz, bateria, oszczędzanie energii, procesor, pamięć, miejsce na dysku, monitory, motyw Windows, pełny ekran, start / zamknięcie / aktywacja aplikacji, tytuł okna, internet, Wi-Fi, dysk USB, plik w folderze, schowek, zdarzenie HTTP lub CLI, inna rutyna, zmiana zmiennej.
+- **Warunki (31) i akcje (62):** zasilanie, okna i aplikacje, klawiatura, schowek, dźwięk, motyw, tapeta, jasność, zrzuty ekranu, pliki i ZIP, porządkowanie Pobranych, Kosz, TEMP, DNS, HTTP, PowerShell, CMD, zmienne, obliczenia, tekst, JSON, łańcuchy rutyn.
+- **Szablony (75)** w 9 grupach: dzień i praca, skupienie i zdrowie, zasilanie, aplikacje, pliki i kopie, sieć i urządzenia, konserwacja, schowek, integracje.
+- **Integracje:** `OpenRoutine.exe --run "Rutyna"`, `OpenRoutine.exe --event nazwa --extra dane` oraz lokalny serwer `http://127.0.0.1:8765/event/nazwa?token=…` (tylko ten komputer).
+
+Budowanie (Node 22, Rust, WebView2): `cd windows && npm ci && npx tauri build`. W repozytorium robi to GitHub Actions po wypchnięciu tagu.
 
 ## Uprawnienia
 
