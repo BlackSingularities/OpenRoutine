@@ -1,5 +1,9 @@
 # Zmiany
 
+## 1.4.1
+
+- Komunikat o nowej wersji bez listy zmian, linków i informacji, skąd pobierana jest aktualizacja.
+
 ## 1.4.0
 
 - Android: **kontekstowy tryb telefonu** – nowy wyzwalacz i warunek „Kontekst telefonu”: telefon sam rozpoznaje, że jesteś w aucie (Bluetooth auta, prędkość z lokalizacji), na spotkaniu (trwające wydarzenie w kalendarzu) albo na siłowni (kalendarz, Bluetooth). Własne słowa kluczowe, np. nazwa auta.

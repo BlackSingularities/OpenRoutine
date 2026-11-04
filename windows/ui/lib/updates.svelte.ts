@@ -32,7 +32,7 @@ export async function checkForUpdate(): Promise<boolean> {
     const version = String(rel.tag_name ?? "").replace(/^v/i, "");
     if (version && newer(version, upd.current)) {
       const asset = (rel.assets ?? []).find((a: any) => /setup-x64\.exe$/i.test(a.name));
-      upd.available = { version, page: rel.html_url, download: asset?.browser_download_url ?? null };
+      upd.available = { version, page: "", download: asset?.browser_download_url ?? null };
     } else upd.available = null;
     return true;
   } catch {
@@ -55,5 +55,5 @@ export function startUpdateChecks(enabled: () => boolean) {
 
 export function openUpdate(direct: boolean) {
   const u = upd.available;
-  if (u) openUrl(direct && u.download ? u.download : u.page);
+  if (u && direct && u.download) openUrl(u.download);
 }
