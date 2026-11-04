@@ -16,6 +16,7 @@ enum class Category(val title: String) {
     MESSAGES("Powiadomienia, SMS i połączenia"),
     SOUND("Dźwięk i ekran"),
     APPS("Aplikacje i sieć"),
+    PLACE("Miejsce i kontekst"),
     LOGIC("Logika i zmienne"),
     INTEGRATION("Integracje"),
 }
@@ -33,6 +34,8 @@ enum class Need(val title: String, val description: String) {
     SMS_SEND("Wysyłanie SMS", "Wysyłanie SMS-ów z akcji."),
     PHONE_STATE("Stan telefonu", "Reagowanie na połączenia przychodzące, odebrane i zakończone."),
     BLUETOOTH_CONNECT("Urządzenia Bluetooth", "Rozpoznawanie podłączanych urządzeń Bluetooth (słuchawki, auto, zegarek)."),
+    LOCATION("Lokalizacja", "Miejsca i jazda autem. W ustawieniach aplikacji wybierz „Zezwalaj zawsze”, by działało w tle."),
+    CALENDAR("Kalendarz", "Rozpoznawanie spotkań i treningów z kalendarza."),
 }
 
 data class Param(
@@ -118,6 +121,9 @@ private object Opt {
     val routineState = listOf("on" to "Włącz", "off" to "Wyłącz", "toggle" to "Przełącz")
     val priority = listOf("normal" to "Zwykły", "high" to "Wysoki")
     val brightness = listOf("manual" to "Ręczna", "auto" to "Automatyczna")
+    val context = listOf("car" to "W aucie", "meeting" to "Na spotkaniu", "gym" to "Na siłowni")
+    val enterLeave = listOf("enter" to "Zaczyna się / wejście", "leave" to "Kończy się / wyjście")
+    val insideOutside = listOf("inside" to "W obszarze", "outside" to "Poza obszarem")
     val contentType = listOf("application/json" to "JSON", "text/plain" to "Tekst", "application/x-www-form-urlencoded" to "Formularz")
 }
 
@@ -153,6 +159,8 @@ object Catalog {
         "ringer" to "tryb dzwonka",
         "volume_music" to "głośność multimediów %",
         "battery_temp" to "temperatura baterii °C",
+        "lat" to "szerokość geograficzna",
+        "lon" to "długość geograficzna",
     )
 }
 
@@ -248,6 +256,21 @@ private fun MutableList<BlockSpec>.triggers() {
         m, listOf("battery_temp")) { "temperatura baterii ${it.label("dir").lowercase()} ${it["temp"]}°C" }
     t("package", Category.APPS, "Instalacja aplikacji", "Zainstalowanie, aktualizacja lub odinstalowanie aplikacji.",
         listOf(choice("event", "Zdarzenie", Opt.pkgEvent)), m, listOf("package", "app_name")) { "aplikacja: ${it.label("event").lowercase()}" }
+    t("context", Category.PLACE, "Kontekst telefonu", "Telefon sam rozpoznaje, że jesteś w aucie (Bluetooth auta, prędkość), na spotkaniu (kalendarz) albo na siłowni (kalendarz, Bluetooth).",
+        listOf(choice("context", "Kontekst", Opt.context), choice("state", "Kiedy", Opt.enterLeave),
+            Param("keywords", "Dodatkowe słowa", optional = true, hint = "np. nazwa auta BT, tytuł w kalendarzu – po przecinku")),
+        m + Need.BLUETOOTH_CONNECT + Need.LOCATION + Need.CALENDAR, listOf("context", "context_source")) {
+        "${it.label("context").lowercase()}: ${if (it["state"] == "enter") "początek" else "koniec"}"
+    }
+    t("place", Category.PLACE, "W pobliżu miejsca", "Wejście w obszar wokół punktu (dom, praca, siłownia) albo wyjście z niego.",
+        listOf(Param("name", "Nazwa miejsca", optional = true, hint = "np. Dom"),
+            Param("lat", "Szerokość (lub „lat, lon”)", hint = "np. 52.2297 albo 52.2297, 21.0122"),
+            Param("lon", "Długość", optional = true, hint = "np. 21.0122"),
+            Param("radius", "Promień (m)", ParamType.NUMBER, "200"), choice("state", "Kiedy", Opt.enterLeave)),
+        m + Need.LOCATION, listOf("place", "distance", "lat", "lon")) {
+        val n = it["name"].ifBlank { "miejsce" }
+        "${if (it["state"] == "enter") "wejście do" else "wyjście z"} „$n” (${it["radius"]} m)"
+    }
     t("call", Category.MESSAGES, "Połączenie telefoniczne", "Przychodzące połączenie, początek albo koniec rozmowy.",
         listOf(choice("state", "Stan", Opt.call), Param("number", "Numer zawiera", optional = true, hint = "puste = dowolny")),
         setOf(Need.PHONE_STATE), listOf("call_number")) {
@@ -316,6 +339,17 @@ private fun MutableList<BlockSpec>.conditions() {
         val app = Fmt.appName(it["app"]).ifBlank { "(wybierz)" }
         if (it["state"] == "yes") "jest $app" else "brak $app"
     }
+    c("context", Category.PLACE, "Kontekst telefonu", "Czy jesteś teraz w aucie, na spotkaniu albo na siłowni.",
+        listOf(choice("context", "Kontekst", Opt.context), choice("state", "Trwa", Opt.yesNo),
+            Param("keywords", "Dodatkowe słowa", optional = true, hint = "po przecinku")),
+        setOf(Need.BLUETOOTH_CONNECT, Need.LOCATION, Need.CALENDAR)) {
+        (if (it["state"] == "yes") "" else "nie ") + it.label("context").lowercase()
+    }
+    c("place", Category.PLACE, "W pobliżu miejsca", "Czy jesteś w obszarze wokół punktu.",
+        listOf(Param("name", "Nazwa miejsca", optional = true), Param("lat", "Szerokość (lub „lat, lon”)"),
+            Param("lon", "Długość", optional = true), Param("radius", "Promień (m)", ParamType.NUMBER, "200"),
+            choice("state", "Gdzie", Opt.insideOutside)),
+        setOf(Need.LOCATION)) { "${it.label("state").lowercase()} „${it["name"].ifBlank { "miejsce" }}” (${it["radius"]} m)" }
     c("routine_enabled", Category.LOGIC, "Stan innej rutyny", "Czy inna rutyna jest włączona.",
         listOf(Param("name", "Nazwa rutyny"), choice("state", "Rutyna", Opt.onOff))) { "„${it["name"]}” ${it.label("state").lowercase()}" }
     c("since_run", Category.LOGIC, "Od ostatniego uruchomienia", "Czy od poprzedniego wykonania tej rutyny minęło co najmniej tyle minut.",
@@ -330,6 +364,10 @@ private fun MutableList<BlockSpec>.actions() {
         listOf(Param("text", "Tekst"))) { "komunikat „${it["text"]}”" }
     a("speak", Category.SOUND, "Powiedz na głos", "Synteza mowy (silnik TTS telefonu).",
         listOf(Param("text", "Tekst", ParamType.MULTILINE))) { "powiedz „${it["text"]}”" }
+    a("speak_notifications", Category.SOUND, "Przeczytaj powiadomienia", "Głosowe streszczenie ostatnich powiadomień – np. w aucie. Tekst trafia też do {notif_summary}.",
+        listOf(Param("minutes", "Z ostatnich minut", ParamType.NUMBER, "30"), Param("max", "Najwyżej", ParamType.NUMBER, "5"),
+            choice("clear", "Wyczyść po przeczytaniu", Opt.yesNo)),
+        setOf(Need.NOTIFICATION_ACCESS)) { "przeczytaj powiadomienia (${it["minutes"]} min)" }
     a("vibrate", Category.SOUND, "Wibracja", "Wybrany wzór wibracji.",
         listOf(choice("pattern", "Wzór", Opt.vibrate))) { "wibracja: ${it.label("pattern").lowercase()}" }
     a("sound", Category.SOUND, "Odtwórz dźwięk", "Domyślny dźwięk systemowy.",

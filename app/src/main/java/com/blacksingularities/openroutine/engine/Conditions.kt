@@ -68,6 +68,12 @@ object Conditions {
                 val minutes = b["minutes"].trim().toLongOrNull() ?: 60
                 last <= 0 || System.currentTimeMillis() - last >= minutes * 60_000
             }
+            "c.context" -> PhoneContext.detect(ctx, b["context"], b["keywords"]).first == (b["state"] == "yes")
+            "c.place" -> {
+                PhoneContext.refresh(ctx)
+                val ins = PhoneContext.inside(b) ?: error("Brak lokalizacji lub złe współrzędne")
+                ins == (b["state"] == "inside")
+            }
             else -> error("Nieznany warunek ${b.type}")
         }
     }

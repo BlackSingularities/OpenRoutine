@@ -1,5 +1,12 @@
 # Zmiany
 
+## 1.4.0
+
+- Android: **kontekstowy tryb telefonu** – nowy wyzwalacz i warunek „Kontekst telefonu”: telefon sam rozpoznaje, że jesteś w aucie (Bluetooth auta, prędkość z lokalizacji), na spotkaniu (trwające wydarzenie w kalendarzu) albo na siłowni (kalendarz, Bluetooth). Własne słowa kluczowe, np. nazwa auta.
+- Android: nowy wyzwalacz i warunek **„W pobliżu miejsca”** – wejście w obszar wokół punktu (szerokość, długość, promień) albo wyjście z niego; zmienne {lat}, {lon}, {distance}.
+- Android: nowa akcja **„Przeczytaj powiadomienia”** – głosowe streszczenie ostatnich powiadomień, np. po wejściu do auta.
+- Android: nowe uprawnienia – Lokalizacja i Kalendarz.
+
 ## 1.3.1
 
 - Windows: autostart jest teraz domyślnie wyłączony – aplikacja nie dopisuje się sama do rejestru przy pierwszym uruchomieniu; włączysz go w Ustawieniach.

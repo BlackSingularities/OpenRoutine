@@ -47,6 +47,16 @@ object Actions {
             "a.notify" -> Notifier.show(ctx, p("title").ifBlank { "OpenRoutine" }, p("text"), high = b["priority"] == "high")
             "a.toast" -> withContext(Dispatchers.Main) { Toast.makeText(ctx, p("text"), Toast.LENGTH_LONG).show() }
             "a.speak" -> speak(ctx, p("text"))
+            "a.speak_notifications" -> {
+                val text = NotifBuffer.summary(
+                    ctx,
+                    (b["minutes"].trim().toIntOrNull() ?: 30).coerceAtLeast(1),
+                    (b["max"].trim().toIntOrNull() ?: 5).coerceIn(1, 30),
+                    b["clear"] == "yes",
+                )
+                run.vars["notif_summary"] = text
+                speak(ctx, text)
+            }
             "a.vibrate" -> vibrate(ctx, b["pattern"])
             "a.sound" -> sound(ctx, b["kind"])
             "a.ringer" -> {

@@ -27,6 +27,8 @@ object Perms {
         Need.SMS_SEND -> has(ctx, Manifest.permission.SEND_SMS)
         Need.PHONE_STATE -> has(ctx, Manifest.permission.READ_PHONE_STATE) && has(ctx, Manifest.permission.READ_CALL_LOG)
         Need.BLUETOOTH_CONNECT -> Build.VERSION.SDK_INT < 31 || has(ctx, Manifest.permission.BLUETOOTH_CONNECT)
+        Need.LOCATION -> has(ctx, Manifest.permission.ACCESS_FINE_LOCATION) || has(ctx, Manifest.permission.ACCESS_COARSE_LOCATION)
+        Need.CALENDAR -> has(ctx, Manifest.permission.READ_CALENDAR)
     }
 
     private fun has(ctx: Context, p: String) = ContextCompat.checkSelfPermission(ctx, p) == PackageManager.PERMISSION_GRANTED
@@ -38,6 +40,8 @@ object Perms {
         Need.SMS_SEND -> arrayOf(Manifest.permission.SEND_SMS)
         Need.PHONE_STATE -> arrayOf(Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_CALL_LOG)
         Need.BLUETOOTH_CONNECT -> if (Build.VERSION.SDK_INT >= 31) arrayOf(Manifest.permission.BLUETOOTH_CONNECT) else null
+        Need.LOCATION -> arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+        Need.CALENDAR -> arrayOf(Manifest.permission.READ_CALENDAR)
         else -> null
     }
 

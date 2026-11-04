@@ -88,6 +88,7 @@ object Engine {
             "routine" to r.name,
             "random" to Random.nextInt(0, 101).toString(),
         )
+        vars.putAll(PhoneContext.vars())
         vars.putAll(Repo.vars.value)
         return vars
     }
@@ -148,7 +149,7 @@ object Engine {
 /** Czy zdarzenie pasuje do parametrów wyzwalacza. */
 object Triggers {
     fun matches(b: Block, data: Map<String, String>): Boolean = when (b.type) {
-        "t.time", "t.interval", "t.folder", "t.monthly", "t.once" -> data["block"] == b.id
+        "t.time", "t.interval", "t.folder", "t.monthly", "t.once", "t.context", "t.place" -> data["block"] == b.id
         "t.battery" -> {
             val now = data["battery"]?.toIntOrNull()
             val prev = data["prev"]?.toIntOrNull()

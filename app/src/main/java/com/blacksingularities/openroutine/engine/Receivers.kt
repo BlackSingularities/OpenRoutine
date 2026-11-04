@@ -92,6 +92,7 @@ class NotificationWatcher : NotificationListenerService() {
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
         val text = (extras.getCharSequence(Notification.EXTRA_BIG_TEXT) ?: extras.getCharSequence(Notification.EXTRA_TEXT))?.toString().orEmpty()
         if (title.isEmpty() && text.isEmpty()) return
+        if (n.flags and Notification.FLAG_ONGOING_EVENT == 0) NotifBuffer.add(NotifBuffer.Item(System.currentTimeMillis(), sbn.packageName, title, text))
         Engine.dispatch("t.notification", mapOf("notif_app" to sbn.packageName, "notif_title" to title, "notif_text" to text))
     }
 }

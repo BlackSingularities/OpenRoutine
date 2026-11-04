@@ -76,7 +76,9 @@ class MonitorService : Service() {
                     val name = runCatching { device?.name }.getOrNull().orEmpty()
                     val address = runCatching { device?.address }.getOrNull().orEmpty()
                     val state = if (intent.action == BluetoothDevice.ACTION_ACL_CONNECTED) "connected" else "disconnected"
+                    if (state == "connected") PhoneContext.btConnected.add(name) else PhoneContext.btConnected.remove(name)
                     Engine.dispatch("t.bt_device", mapOf("state" to state, "bt_name" to name, "bt_address" to address))
+                    runCatching { PhoneContext.poll(context) }
                 }
                 Intent.ACTION_POWER_CONNECTED -> Engine.dispatch("t.power", mapOf("state" to "connected"))
                 Intent.ACTION_POWER_DISCONNECTED -> Engine.dispatch("t.power", mapOf("state" to "disconnected"))
@@ -155,6 +157,7 @@ class MonitorService : Service() {
         pollJob = Engine.scope.launch {
             while (isActive) {
                 runCatching { FolderWatch.poll(this@MonitorService) }
+                runCatching { PhoneContext.poll(this@MonitorService) }
                 delay(60_000)
             }
         }
@@ -190,6 +193,7 @@ class MonitorService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         runCatching { androidx.core.app.NotificationManagerCompat.from(this).notify(Notifier.MONITOR_ID, notification()) }
+        runCatching { PhoneContext.startLocation(this) }
         return START_STICKY
     }
 
@@ -199,6 +203,7 @@ class MonitorService : Service() {
         defaultCallback?.let { cb -> runCatching { getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(cb) } }
         callback?.let { cb -> runCatching { getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(cb) } }
         pollJob?.cancel()
+        PhoneContext.stopLocation(this)
         super.onDestroy()
     }
 
@@ -217,7 +222,7 @@ class MonitorService : Service() {
     companion object {
         fun needed(): Boolean = Repo.routines.value.any { r ->
             r.enabled && r.triggers.any { it.spec?.needs?.contains(Need.MONITOR) == true }
-        }
+        } || PhoneContext.locationNeeded()
 
         fun sync(ctx: Context) {
             val intent = Intent(ctx, MonitorService::class.java)
