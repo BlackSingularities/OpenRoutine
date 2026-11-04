@@ -201,7 +201,7 @@ export const PRESETS: Preset[] = [
   { group: "Integracje i zaawansowane", title: "Obserwuj cenę / kurs", desc: "Co 30 minut sprawdza kurs EUR w API NBP i powiadamia o każdej zmianie.",
     r: { triggers: [b("t.web_change", { url: "https://api.nbp.pl/api/exchangerates/rates/a/eur/?format=json", json: "rates.0.mid", minutes: "30" })], actions: [b("a.notify", { title: "Kurs EUR się zmienił", text: "{old_value} → {value} PLN" })] } },
   { group: "Integracje i zaawansowane", title: "Nowa wersja programu", desc: "Raz na godzinę sprawdza najnowsze wydanie i informuje o nowej wersji.",
-    r: { triggers: [b("t.web_change", { url: "https://redzikowski.com/api/github/repos/BlackSingularities/OpenRoutine/releases/latest", json: "tag_name", minutes: "60" })], actions: [b("a.notify", { title: "Nowe wydanie", text: "{value} (poprzednio {old_value})" })] } },
+    r: { triggers: [b("t.web_change", { url: "https://redzikowski.com/api/releases/repos/BlackSingularities/OpenRoutine/releases/latest", json: "tag_name", minutes: "60" })], actions: [b("a.notify", { title: "Nowe wydanie", text: "{value} (poprzednio {old_value})" })] } },
   { group: "Integracje i zaawansowane", title: "Łańcuch rutyn", desc: "Gdy dowolna rutyna zakończy się błędem – zapisuje to w pliku.",
     r: { triggers: [b("t.routine_done", { routine: "", result: "error" })], actions: [b("a.file_write", { path: "{documents}\\Błędy rutyn.txt", text: "{datetime} – {routine}", mode: "append", newline: "1" })] } },
   { group: "Integracje i zaawansowane", title: "Losowy cytat na start", desc: "Po zalogowaniu wybiera motywujący cytat z listy.",
