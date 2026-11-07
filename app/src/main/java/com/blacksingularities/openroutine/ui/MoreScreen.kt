@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Email
+import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Coffee
@@ -168,6 +169,9 @@ fun MoreScreen(vm: AppViewModel) {
             }
             ActionRow(Icons.Rounded.Language, "redzikowski.com") { uri.openUri(AUTHOR_URL) }
             ActionRow(Icons.Rounded.Email, "kontakt@redzikowski.com") { uri.openUri("mailto:kontakt@redzikowski.com") }
+            com.blacksingularities.openroutine.feedback.FeedbackEntry { open ->
+                ActionRow(Icons.Rounded.BugReport, com.blacksingularities.openroutine.feedback.FeedbackText.entryTitle, com.blacksingularities.openroutine.feedback.FeedbackText.entrySubtitle) { open() }
+            }
             ActionRow(Icons.Rounded.Coffee, "Postaw kawę", "Wesprzyj rozwój na buycoffee.to") { uri.openUri(COFFEE_URL) }
         }
 

@@ -1,5 +1,7 @@
 package com.blacksingularities.openroutine
 
+import com.blacksingularities.openroutine.feedback.Feedback
+import com.blacksingularities.openroutine.feedback.CrashReportPrompt
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
@@ -21,6 +23,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Feedback.install(this, "openroutine")
         // Przezroczyste paski systemu bez przyciemnienia – dolny pasek aplikacji sięga do samej krawędzi ekranu.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
@@ -29,7 +32,7 @@ class MainActivity : ComponentActivity() {
         window.isNavigationBarContrastEnforced = false
         UpdateManager.clearUpdatedNotification(this)
         handle(intent)
-        setContent { OpenRoutineTheme { AppRoot(vm) } }
+        setContent { OpenRoutineTheme { CrashReportPrompt(); AppRoot(vm) } }
     }
 
     override fun onNewIntent(intent: Intent) {

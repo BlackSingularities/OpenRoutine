@@ -7,6 +7,7 @@
   import { THEMES, type ThemeId } from "../lib/theme";
   import { S, saveSettings, setTheme, toast, refresh } from "../lib/store.svelte";
   import { upd, checkForUpdate, openUpdate } from "../lib/updates.svelte";
+  import { openFeedback } from "../lib/feedback.js";
 
   const st = $derived(S.data.settings);
   const THEME_NAMES: Record<string, string> = { dark: "Czarny", light: "Biały", gray: "Grafit", classic: "Klasyczny", custom: "Własny" };
@@ -162,6 +163,7 @@
       <div class="links">
         <button class="btn ghost sm" onclick={() => openUrl("https://redzikowski.com")}><Icon name="globe" size={13} />redzikowski.com</button>
         <button class="btn ghost sm" onclick={() => openUrl("mailto:kontakt@redzikowski.com")}><Icon name="mail" size={13} />kontakt@redzikowski.com</button>
+        <button class="btn ghost sm" onclick={() => openFeedback()}><Icon name="message" size={13} />Zgłoś błąd lub sugestię</button>
         <button class="btn ghost sm" onclick={() => openUrl("https://buycoffee.to/adamredzikowski")}><Icon name="coffee" size={13} />Postaw kawę</button>
       </div>
       <p class="note">Pomysł i wykonanie: Adam Rędzikowski · redzikowski.com. Bez reklam, śledzenia i konta – rutyny zostają na tym komputerze.</p>

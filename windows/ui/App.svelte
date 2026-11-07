@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { getVersion } from "@tauri-apps/api/app";
+  import { initFeedback } from "./lib/feedback.js";
   import Icon from "./components/Icon.svelte";
   import Tooltip from "./components/Tooltip.svelte";
   import RoutineList from "./components/RoutineList.svelte";
@@ -32,6 +34,7 @@
   const showUpd = $derived(!!upd.available && S.data.settings.skippedVersion !== upd.available.version);
 
   onMount(() => {
+    initFeedback({ app: "openroutine", appName: "OpenRoutine", version: () => getVersion(), lang: "pl", platform: "windows" });
     init().then(() => startUpdateChecks(() => S.data.settings.checkUpdates));
     const k = (e: KeyboardEvent) => {
       const typing = (e.target as HTMLElement)?.closest("input, textarea, select");
