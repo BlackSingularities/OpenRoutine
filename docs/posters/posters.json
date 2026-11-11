@@ -1,0 +1,23 @@
+{
+  "slug": "openroutine",
+  "name": "OpenRoutine",
+  "label": "automatyzacje: zdarzenie · warunek · akcja",
+  "icon": "icon.png",
+  "url": "https://redzikowski.com/portfolio/openroutine",
+  "posters": [
+    {
+      "platform": "android",
+      "file": "android.png",
+      "title": "Telefon, który *robi to sam*",
+      "lead": "Układasz przepis: gdy coś się wydarzy i warunki są spełnione, telefon wykonuje akcje po kolei. Bez programowania.",
+      "shots": [
+        { "src": "../screenshots/android/01-rutyny.png", "caption": "Rutyny" },
+        { "src": "../screenshots/android/02-edytor.png", "caption": "Edytor" },
+        { "src": "../screenshots/android/03-szablony.png", "caption": "Szablony" },
+        { "src": "../screenshots/android/04-wyzwalacze.png", "caption": "Wyzwalacze" }
+      ],
+      "features": ["16 wyzwalaczy", "14 warunków", "27 akcji", "zmienne w tekstach", "intencje i HTTP", "dziennik wykonań"],
+      "meta": "Android 10 lub nowszy"
+    }
+  ]
+}
